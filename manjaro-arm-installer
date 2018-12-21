@@ -3,25 +3,33 @@
 # Set globals
 LIBDIR=/usr/share/manjaro-arm-tools/lib
 SDCARD=/dev/mmcblk0
-USER=manjaro
-password=manjaro
+TMPDIR=/var/lib/manjaro-arm-tools/tmp
+PROFILES=/usr/share/manjaro-arm-tools/profiles
+ARCH='aarch64'
+DEVICE='rpi3'
+EDITION='minimal'
+USER='manjaro'
+PASSWORD='manjaro'
+
 
 
 
 #imports
-source $LIBDIR/functions.sh
+#source $LIBDIR/functions.sh
 
 
 # Functions
+msg() {
+    ALL_OFF="\e[1;0m"
+    BOLD="\e[1;1m"
+    GREEN="${BOLD}\e[1;32m"
+      local mesg=$1; shift
+      printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+ }
+
 
 usage_build_installer() {
     echo "Usage: ${0##*/} [options]"
-    echo "    -d <device>        Device [Default = rpi3. Options = rpi2, rpi3, oc1, oc2, xu4 and pinebook]"
-    echo "    -e <edition>       Edition to build [Default = minimal. Options = minimal, lxqt, mate and server]"
-    echo "    -s <sd card>       Path to the SD-Card. [Default = /dev/mmcblk0]"
-    echo "    -u <username>      Username to be used. [Default = manjaro]"
-    echo "    -p <password>      Password to give the user. [Default = manjaro]"
-    echo "    -n                 Make only rootfs, compressed as a .zip, instead of a .img."
     echo '    -h                 This help'
     echo ''
     echo ''
@@ -41,8 +49,25 @@ show_elapsed_time(){
     msg "Time %s: %s minutes..." "$1" "$(elapsed_time $2)"
 }
 
-create_rootfs_installer() {
-    msg "Creating rootfs for $DEVICE..."
+getarmprofiles () {
+    if ls $PROFILES/arm-profiles/* 1> /dev/null 2>&1; then
+        cd $PROFILES/arm-profiles
+        git pull
+    else
+        cd $PROFILES
+        git clone https://gitlab.com/Strit/arm-profiles.git
+    fi
+
+}
+
+create_install() {
+ if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
+        ARCH='armv7h'
+    else
+        ARCH='aarch64'
+    fi
+
+    msg "Creating install for $DEVICE..."
 
     # backup host mirrorlist
     sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-orig
@@ -50,38 +75,24 @@ create_rootfs_installer() {
     # Create arm mirrlorlist
     echo "Server = http://mirrors.dotsrc.org/manjaro-arm/stable/\$arch/\$repo/" > mirrorlist
     sudo mv mirrorlist /etc/pacman.d/mirrorlist
-
-    # cd to root_fs
-    mkdir -p $ROOTFS_IMG
-    cd $ROOTFS_IMG
-    
-        # Remove old rootfs if it exists
-    if [ -d $ROOTFS_IMG/rootfs_$ARCH ]; then
-    echo "Removing old rootfs..."
-    sudo rm -rf $ROOTFS_IMG/rootfs_$ARCH
-    fi
-
-    # create folder for the rootfs
-    mkdir -p rootfs_$ARCH
-
-    msg "Create new rootfs..."
-    # install the rootfs filesystem
-    sudo pacstrap -G -c -C $LIBDIR/pacman.conf.$ARCH $ROOTFS_IMG/rootfs_$ARCH base manjaro-arm-keyring #$PKG_DEVICE $PKG_EDITION manjaro-arm-keyring lsb-release
+  
+    # create chroot on SD card
+        sudo pacstrap -G -c -C $LIBDIR/pacman.conf.$ARCH $TMPDIR/root base manjaro-arm-keyring
     
     # Enable cross architecture Chrooting
     if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        sudo cp /usr/bin/qemu-arm-static $ROOTFS_IMG/rootfs_$ARCH/usr/bin/
+        sudo cp /usr/bin/qemu-arm-static $TMPDIR/root/usr/bin/
     else
-        sudo cp /usr/bin/qemu-aarch64-static $ROOTFS_IMG/rootfs_$ARCH/usr/bin/
+        sudo cp /usr/bin/qemu-aarch64-static $TMPDIR/root/usr/bin/
     fi
     
     msg "Setting up keyrings..."
-    sudo systemd-nspawn -D $ROOTFS_IMG/rootfs_$ARCH pacman-key --init 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $ROOTFS_IMG/rootfs_$ARCH pacman-key --populate archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root pacman-key --populate archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    sudo systemd-nspawn -D $ROOTFS_IMG/rootfs_$ARCH pacman -S $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
+    sudo systemd-nspawn -D $TMPDIR/root pacman -S $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
 
     # restore original mirrorlist to host system
     sudo mv /etc/pacman.d/mirrorlist-orig /etc/pacman.d/mirrorlist
@@ -89,64 +100,72 @@ create_rootfs_installer() {
     
     msg "Enabling services..."
     # Enable services
-    sudo systemd-nspawn -D rootfs_$ARCH systemctl enable systemd-networkd.service getty.target haveged.service dhcpcd.service 1> /dev/null 2>&1
-    sudo systemd-nspawn -D rootfs_$ARCH systemctl enable $SRV_EDITION 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root systemctl enable systemd-networkd.service getty.target haveged.service dhcpcd.service 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
 
     if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
-        sudo systemd-nspawn -D rootfs_$ARCH systemctl enable amlogic.service 1> /dev/null 2>&1
+        sudo systemd-nspawn -D $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     fi
 
     msg "Applying overlay for $EDITION..."
-    sudo cp -ap $PROFILES/arm-profiles/overlays/$EDITION/* $ROOTFS_IMG/rootfs_$ARCH/
+    sudo cp -ap $PROFILES/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
     
     msg "Setting up users..."
     #setup users
-    sudo systemd-nspawn -D rootfs_$ARCH passwd root < $PASSWORD 1> /dev/null 2>&1
-    sudo systemd-nspawn -D rootfs_$ARCH useradd -m -g users -G wheel,storage,network,power,users -s /bin/bash manjaro 1> /dev/null 2>&1
-    sudo systemd-nspawn -D rootfs_$ARCH passwd $USER < $PASSWORD 1> /dev/null 2>&1
+    echo "$USER" > $TMPDIR/user
+    echo "$PASSWORD" >> $TMPDIR/password
+    echo "$PASSWORD" >> $TMPDIR/password
+    sudo systemd-nspawn -D $TMPDIR/root passwd root < $TMPDIR/password 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
+
     
     msg "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
         echo "No user services for $EDITION edition"
     else
-        sudo systemd-nspawn -D rootfs_$ARCH --user manjaro systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
+        sudo systemd-nspawn -D $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
     fi
 
     msg "Setting up system settings..."
     #system setup
-    sudo systemd-nspawn -D rootfs_$ARCH chmod u+s /usr/bin/ping 1> /dev/null 2>&1
-    sudo systemd-nspawn -D rootfs_$ARCH update-ca-trust 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
     
     msg "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
-        echo "dtparam=audio=on" | sudo tee --append $ROOTFS_IMG/rootfs_$ARCH/boot/config.txt
-        echo "hdmi_drive=2" | sudo tee --append $ROOTFS_IMG/rootfs_$ARCH/boot/config.txt
-        echo "audio_pwm_mode=2" | sudo tee --append $ROOTFS_IMG/rootfs_$ARCH/boot/config.txt
-        echo "${SDCARD}1  /boot   vfat    defaults        0       0" | sudo tee --append $ROOTFS_IMG/rootfs_$ARCH/etc/fstab
+        echo "dtparam=audio=on" | sudo tee --append $TMPDIR/root/boot/config.txt
+        echo "hdmi_drive=2" | sudo tee --append $TMPDIR/root/boot/config.txt
+        echo "audio_pwm_mode=2" | sudo tee --append $TMPDIR/root/boot/config.txt
+        echo "/dev/mmcblk0p1  /boot   vfat    defaults        0       0" | sudo tee --append $TMPDIR/root/etc/fstab
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
         echo "No device setups for $DEVICE..."
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
         echo "No device setups for $DEVICE..."
     elif [[ "$DEVICE" = "pinebook" ]]; then
-        sudo systemd-nspawn -D rootfs_$ARCH systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
-        sudo systemd-nspawn -D rootfs_$ARCH --user manjaro systemctl --user enable pinebook-user.service 1> /dev/null 2>&1
+        sudo systemd-nspawn -D $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
+        sudo systemd-nspawn -D $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pinebook-user.service 1> /dev/null 2>&1
     else
         echo ""
     fi
     
-    msg "Cleaning rootfs for unwanted files..."
+    msg "Cleaning install for unwanted files..."
        if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        sudo rm $ROOTFS_IMG/rootfs_$ARCH/usr/bin/qemu-arm-static
+        sudo rm $TMPDIR/root/usr/bin/qemu-arm-static
     else
-        sudo rm $ROOTFS_IMG/rootfs_$ARCH/usr/bin/qemu-aarch64-static
+        sudo rm $TMPDIR/root/usr/bin/qemu-aarch64-static
     fi
-    sudo rm -rf $ROOTFS_IMG/rootfs_$ARCH/var/cache/pacman/pkg/*
-    sudo rm -rf $ROOTFS_IMG/rootfs_$ARCH/var/log/*
+    sudo rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
+    sudo rm -rf $TMPDIR/root/var/log/*
+    
+    # Remove temp files on host
+    sudo rm -rf $TMPDIR/user $TMPDIR/password
 
-    msg "$DEVICE $EDITION rootfs complete"
+    msg "$DEVICE $EDITION install complete"
 }
 
 prepare_card () {
+    msg "Getting $SDCARD ready for $DEVICE..."
     # For Raspberry Pi devices
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
         #partition with boot and root
@@ -154,26 +173,17 @@ prepare_card () {
         sudo parted -s $SDCARD mkpart primary fat32 0% 100M
         START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start`
         SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/size`
-        #END_SECTOR=$(expr $START + $SIZE)
+        END_SECTOR=$(expr $START + $SIZE)
         sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100%
         sudo partprobe $SDCARD
-        sudo mkfs.vfat "${SDCARD}p1"
-        sudo mkfs.ext4 "${SDCARD}p2"
-
-    #copy rootfs contents over to the FS
+        sudo mkfs.vfat "${SDCARD}1"
+        sudo mkfs.ext4 "${SDCARD}2"
+        
+        #Mount SD card
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        sudo mount ${SDCARD}p1 $TMPDIR/boot
-        sudo mount ${SDCARD}p2 $TMPDIR/root
-        sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
-        sudo mv $TMPDIR/root/boot/* $TMPDIR/boot
-
-    #clean up
-        sudo umount $TMPDIR/root
-        sudo umount $TMPDIR/boot
- #       sudo losetup -d $SDCARD
-        sudo rm -r $TMPDIR/root $TMPDIR/boot
-        sudo partprobe $SDCARD
+        sudo mount ${SDCARD}1 $TMPDIR/boot
+        sudo mount ${SDCARD}2 $TMPDIR/root
 
     # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
@@ -185,23 +195,11 @@ prepare_card () {
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
         sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
-
-    #copy rootfs contents over to the FS
+        
+        #Mount SD card
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
         sudo mount ${SDCARD}1 $TMPDIR/root
-        sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
-
-    #flash bootloader
-        cd $TMPDIR/root/boot/
-        sudo ./sd_fusing.sh $SDCARD
-        cd ~
-
-    #clean up
-        sudo umount $TMPDIR/root
-       # sudo losetup -d $SDCARD
-        sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD
 
     # For pinebook device
     elif [[ "$DEVICE" = "pinebook" ]]; then
@@ -214,22 +212,12 @@ prepare_card () {
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
         sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
-
-    #copy rootfs contents over to the FS
+        
+        # Mount SD card
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
         sudo mount ${SDCARD}1 $TMPDIR/root
-        sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
-        
-    #flash bootloader
-        sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1
-        
-    #clean up
-        sudo umount $TMPDIR/root
-        #sudo losetup -d $SDCARD
-        sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD
-        
+
     # For rockpro64 device
     elif [[ "$DEVICE" = "rockpro64" ]]; then
 
@@ -241,113 +229,88 @@ prepare_card () {
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
         sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
-
-    #copy rootfs contents over to the FS
+        
+        # Mount SD card
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
         sudo mount ${SDCARD}1 $TMPDIR/root
-        sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
+    fi
+}
+
+cleanup () {
+    msg "Writing bootloader and cleaning up after install..."
+   # For Raspberry Pi devices
+    if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
+       #copy rootfs contents over to the FS
+        sudo mv $TMPDIR/root/boot/* $TMPDIR/boot
         
+        #clean up
+        sudo umount $TMPDIR/root
+        sudo umount $TMPDIR/boot
+        sudo rm -r $TMPDIR/root $TMPDIR/boot
+        sudo partprobe $SDCARD
+        
+# For Odroid devices
+    elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
     #flash bootloader
-        #sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1
+        cd $TMPDIR/root/boot/
+        sudo ./sd_fusing.sh $SDCARD
+        cd ~
+
+    #clean up
+        sudo umount $TMPDIR/root
+        sudo rm -r $TMPDIR/root
+        sudo partprobe $SDCARD
+        
+    # For pinebook device
+    elif [[ "$DEVICE" = "pinebook" ]]; then
+    #flash bootloader
+        sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1
+        
+    #clean up
+        sudo umount $TMPDIR/root
+        sudo rm -r $TMPDIR/root
+        sudo partprobe $SDCARD
+        
+        
+    # For rockpro64 device
+    elif [[ "$DEVICE" = "rockpro64" ]]; then
+    #flash bootloader
         sudo dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc
         sudo dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc
         sudo dd if=$TMPDIR/root/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc
         
     #clean up
         sudo umount $TMPDIR/root
-        #sudo losetup -d $SDCARD
         sudo rm -r $TMPDIR/root
         sudo partprobe $SDCARD
-    else
-        #Not sure if this IF statement is nesssary anymore
-        echo "The $DEVICE" has not been set up yet
-    fi
+        
+fi
 }
 
+# Asking for user input!
+read -p 'What device is this for? [Options: rpi3, oc2 and pinebook] ' DEVICE
+read -p 'What edition do you want? [Options: minimal, lxqt and kde] ' EDITION
+read -p 'What is the path to the SD card? (/dev/???)? ' SDCARD
+read -p 'What username do you want? ' USER
+read -sp "What password should $USER and root have? " PASSWORD
+echo " " #to fix next line from being in the password line
+echo "Device = $DEVICE"
+echo "Edition = $EDITION"
+echo "Path to SD Card = $SDCARD"
+echo "Username = $USER"
 
-transfer_sdcard () {
-     # Test for device input
-    if [[ "$DEVICE" != "rpi2" && "$DEVICE" != "oc1" && "$DEVICE" != "oc2" && "$DEVICE" != "xu4" && "$DEVICE" != "pinebook" && "$DEVICE" != "rpi3" && "$DEVICE" != "rock64" && "$DEVICE" != "rockpro64" ]]; then
-        echo 'Invalid device '$DEVICE', please choose one of the following'
-        echo 'rpi2  |  oc1  | oc2  |  xu4 | pinebook | rpi3 | rock64 | rockpro64'
-        exit 1
-    else
-    msg "Building install for $DEVICE $EDITION..."
-    fi
-
-    if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        ARCH='armv7h'
-    else
-        ARCH='aarch64'
-    fi
-
- #   if [[ "$EDITION" = "minimal" ]]; then
- #       _SIZE=2000
- #   else
- #       _SIZE=5000
- #   fi
-
-    #making blank .img to be used
- #   sudo dd if=/dev/zero of=$IMGDIR/$IMGNAME.img bs=1M count=$_SIZE
-
-    #probing loop into the kernel
- #   sudo modprobe loop
-
-    #set up loop device
- #   LDEV=`sudo losetup -f`
- #   DEV=`echo $SDCARD | cut -d "/" -f 3`
-
-    #mount image to loop device
-#    sudo losetup $SDCARD $IMGDIR/$IMGNAME.img
-
-
-}
-
-
-#Arguments 
-opt=":e:d:u:p:s:nh"
-
-while getopts "${opt}" arg; do
-  case $arg in
-    e)
-      EDITION="${OPTARG}"
-      ;;
-    d)
-      DEVICE="${OPTARG}"
-      ;;
-    u)
-      USER="${OPTARG}"
-      ;;
-    p)
-      PASSWD="${OPTARG}"
-      ;;
-    s)
-      SDCARD="${OPTARG}"
-      ;;
-    n)
-      NOIMAGE="true"
-      ;;
-    \?)
-      echo "Invalid option: -${OPTARG}"
-      exit 1
-      ;;
-    h|?)
-      usage_build_installer
-      exit 1
-      ;;
-    :)
-      echo "Option -${OPTARG} requires an argument."
-      exit 1
-      ;;
-  esac
-done
 
 if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
     ARCH='armv7h'
 else
     ARCH='aarch64'
 fi
+
+#if [[ ! -f $SDCARD ]]; then
+ #   echo "Path $SDCARD does not exist! Aborting..."
+ #   exit 1
+#fi
 
 if [ ! -d "$PROFILES/arm-profiles" ]; then
     getarmprofiles
@@ -367,10 +330,12 @@ SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
 # Set the ending sector that the partition should be resized too
 END_SECTOR=`expr $SECTOR_SIZE - 1`
 
+
 # Commands
-create_rootfs_installer
+timer_start=$(get_timer)
 
 prepare_card
-
-#    msg "Removing rootfs_$ARCH"
-#    sudo rm -rf $ROOTFS_IMG/rootfs_$ARCH
+create_install
+cleanup
+show_elapsed_time "${FUNCNAME}" "${timer_start}"
+sync
