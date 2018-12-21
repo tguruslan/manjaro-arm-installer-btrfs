@@ -93,8 +93,7 @@ create_install() {
     wget https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
     
     msg "Extracting $ARCH rootfs..."
-    sudo mkdir -p $TMPDIR/root
-    sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-Latest.tar.gc -C $TMPDIR/root
+    sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
     
     msg "Setting up keyrings..."
     sudo systemd-nspawn -D $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
@@ -171,7 +170,8 @@ create_install() {
     sudo rm -rf $TMPDIR/root/var/log/*
     
     # Remove temp files on host
-    sudo rm -rf $TMPDIR/user $TMPDIR/password
+    sudo rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
+    sudo rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz
 
     msg "$DEVICE $EDITION install complete"
 }
