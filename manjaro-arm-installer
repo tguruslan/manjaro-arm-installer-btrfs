@@ -10,6 +10,7 @@ DEVICE='rpi3'
 EDITION='minimal'
 USER='manjaro'
 PASSWORD='manjaro'
+ROOTPASSWORD='root'
 
 
 
@@ -70,21 +71,30 @@ create_install() {
     msg "Creating install for $DEVICE..."
 
     # backup host mirrorlist
-    sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-orig
+    #sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-orig
 
     # Create arm mirrlorlist
-    echo "Server = http://mirrors.dotsrc.org/manjaro-arm/stable/\$arch/\$repo/" > mirrorlist
-    sudo mv mirrorlist /etc/pacman.d/mirrorlist
+    #echo "Server = http://mirrors.dotsrc.org/manjaro-arm/stable/\$arch/\$repo/" > mirrorlist
+    #sudo mv mirrorlist /etc/pacman.d/mirrorlist
   
     # create chroot on SD card
-        sudo pacstrap -G -c -C $LIBDIR/pacman.conf.$ARCH $TMPDIR/root base manjaro-arm-keyring
+    #    sudo pacstrap -G -c -C $LIBDIR/pacman.conf.$ARCH $TMPDIR/root base manjaro-arm-keyring
     
     # Enable cross architecture Chrooting
-    if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        sudo cp /usr/bin/qemu-arm-static $TMPDIR/root/usr/bin/
-    else
-        sudo cp /usr/bin/qemu-aarch64-static $TMPDIR/root/usr/bin/
-    fi
+    #if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
+    #    sudo cp /usr/bin/qemu-arm-static $TMPDIR/root/usr/bin/
+    #else
+    #    sudo cp /usr/bin/qemu-aarch64-static $TMPDIR/root/usr/bin/
+    #fi
+    
+    # fetch and extract rootfs
+    msg "Downloading latest $ARCH rootfs..."
+    cd $TMPDIR
+    wget https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
+    
+    msg "Extracting $ARCH rootfs..."
+    sudo mkdir -p $TMPDIR/root
+    sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-Latest.tar.gc -C $TMPDIR/root
     
     msg "Setting up keyrings..."
     sudo systemd-nspawn -D $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
@@ -115,7 +125,9 @@ create_install() {
     echo "$USER" > $TMPDIR/user
     echo "$PASSWORD" >> $TMPDIR/password
     echo "$PASSWORD" >> $TMPDIR/password
-    sudo systemd-nspawn -D $TMPDIR/root passwd root < $TMPDIR/password 1> /dev/null 2>&1
+    echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
+    echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
+    sudo systemd-nspawn -D $TMPDIR/root passwd root < $TMPDIR/rootpassword 1> /dev/null 2>&1
     sudo systemd-nspawn -D $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     sudo systemd-nspawn -D $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
 
@@ -291,9 +303,10 @@ fi
 # Asking for user input!
 read -p 'What device is this for? [Options: rpi3, oc2 and pinebook] ' DEVICE
 read -p 'What edition do you want? [Options: minimal, lxqt and kde] ' EDITION
-read -p 'What is the path to the SD card? (/dev/???)? ' SDCARD
+read -p 'What is the path to the SD card? (example: /dev/sdb)? ' SDCARD
 read -p 'What username do you want? ' USER
-read -sp "What password should $USER and root have? " PASSWORD
+read -sp "What password should $USER have? " PASSWORD
+read -sp "What password should the root user have? " ROOTPASSWORD
 echo " " #to fix next line from being in the password line
 echo "Device = $DEVICE"
 echo "Edition = $EDITION"
