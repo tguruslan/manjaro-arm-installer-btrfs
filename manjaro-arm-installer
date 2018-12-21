@@ -11,24 +11,6 @@ password=manjaro
 #imports
 source $LIBDIR/functions.sh
 
-# Remove '/dev/' from the name 
-DEV_NAME=`echo "$SDCARD" | cut -d "/" -f 3`
- 
-# Set just the name of the device, usually mmcblk0
-#DEV_NAME=`echo /sys/block/${PART_NAME} | cut -d "/" -f 4`
-
- # Add /dev/ to device name
- # DEV="/dev/${DEV_NAME}"
-
- # Get Number of device as single digit integer
- # PART_NUM=`cat /sys/block/${DEV_NAME}/${PART_NAME}/partition`
-
-# Get size of SDCard (final sector)
-SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
-
-# Set the ending sector that the partition should be resized too
-END_SECTOR=`expr $SECTOR_SIZE - 1`
-
 
 # Functions
 
@@ -175,8 +157,8 @@ prepare_card () {
         #END_SECTOR=$(expr $START + $SIZE)
         sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100%
         sudo partprobe $SDCARD
-        sudo mkfs.vfat "${SDCARD}1"
-        sudo mkfs.ext4 "${SDCARD}2"
+        sudo mkfs.vfat "${SDCARD}p1"
+        sudo mkfs.ext4 "${SDCARD}p2"
 
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
@@ -202,12 +184,12 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
 
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}p1 $TMPDIR/root
+        sudo mount ${SDCARD}1 $TMPDIR/root
         sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
 
     #flash bootloader
@@ -217,7 +199,7 @@ prepare_card () {
 
     #clean up
         sudo umount $TMPDIR/root
-        sudo losetup -d $SDCARD
+       # sudo losetup -d $SDCARD
         sudo rm -r $TMPDIR/root
         sudo partprobe $SDCARD
 
@@ -231,12 +213,12 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
 
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}p1 $TMPDIR/root
+        sudo mount ${SDCARD}1 $TMPDIR/root
         sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
         
     #flash bootloader
@@ -244,7 +226,7 @@ prepare_card () {
         
     #clean up
         sudo umount $TMPDIR/root
-        sudo losetup -d $SDCARD
+        #sudo losetup -d $SDCARD
         sudo rm -r $TMPDIR/root
         sudo partprobe $SDCARD
         
@@ -258,12 +240,12 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos
         sudo parted -s $SDCARD mkpart primary ext4 0% 100%
         sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
 
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}p1 $TMPDIR/root
+        sudo mount ${SDCARD}1 $TMPDIR/root
         sudo cp -ra $ROOTFS_IMG/rootfs_$ARCH/* $TMPDIR/root/
         
     #flash bootloader
@@ -274,7 +256,7 @@ prepare_card () {
         
     #clean up
         sudo umount $TMPDIR/root
-        sudo losetup -d $SDCARD
+        #sudo losetup -d $SDCARD
         sudo rm -r $TMPDIR/root
         sudo partprobe $SDCARD
     else
@@ -351,7 +333,7 @@ while getopts "${opt}" arg; do
       exit 1
       ;;
     h|?)
-      usage_build_img
+      usage_build_installer
       exit 1
       ;;
     :)
@@ -375,6 +357,15 @@ fi
 PKG_DEVICE=$(grep "^[^#;]" $PROFILES/arm-profiles/devices/$DEVICE | awk '{print $1}')
 PKG_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/editions/$EDITION | awk '{print $1}')
 SRV_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/services/$EDITION | awk '{print $1}')
+
+# Remove '/dev/' from the name 
+DEV_NAME=`echo "$SDCARD" | cut -d "/" -f 3`
+
+# Get size of SDCard (final sector)
+SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
+
+# Set the ending sector that the partition should be resized too
+END_SECTOR=`expr $SECTOR_SIZE - 1`
 
 # Commands
 create_rootfs_installer
