@@ -1,10 +1,10 @@
 #! /bin/bash
 
 # Set globals
-LIBDIR=/usr/share/manjaro-arm-tools/lib
+#LIBDIR=/usr/share/manjaro-arm-tools/lib
 SDCARD=/dev/mmcblk0
-TMPDIR=/var/lib/manjaro-arm-tools/tmp
-PROFILES=/usr/share/manjaro-arm-tools/profiles
+TMPDIR=/var/tmp/manjaro-arm-installer
+PROFILES=/var/tmp/manjaro-arm-installer/profiles
 ARCH='aarch64'
 DEVICE='rpi3'
 EDITION='minimal'
@@ -55,6 +55,8 @@ getarmprofiles () {
         cd $PROFILES/arm-profiles
         git pull
     else
+        sudo mkdir -p $PROFILES
+        sudo chmod 777 $PROFILES
         cd $PROFILES
         git clone https://gitlab.com/Strit/arm-profiles.git
     fi
@@ -101,7 +103,7 @@ create_install() {
     
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    sudo systemd-nspawn -D $TMPDIR/root pacman -S $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
+    sudo systemd-nspawn -D $TMPDIR/root pacman -S base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
 
     # restore original mirrorlist to host system
     sudo mv /etc/pacman.d/mirrorlist-orig /etc/pacman.d/mirrorlist
@@ -306,8 +308,10 @@ read -p 'What edition do you want? [Options: minimal, lxqt and kde] ' EDITION
 read -p 'What is the path to the SD card? (example: /dev/sdb)? ' SDCARD
 read -p 'What username do you want? ' USER
 read -sp "What password should $USER have? " PASSWORD
-read -sp "What password should the root user have? " ROOTPASSWORD
-echo " " #to fix next line from being in the password line
+read -sp "
+What password should the root user have? " ROOTPASSWORD
+echo " 
+" #to fix next line from being in the password line
 echo "Device = $DEVICE"
 echo "Edition = $EDITION"
 echo "Path to SD Card = $SDCARD"
@@ -325,9 +329,8 @@ fi
  #   exit 1
 #fi
 
-if [ ! -d "$PROFILES/arm-profiles" ]; then
-    getarmprofiles
-fi
+# get the profiles
+getarmprofiles
 
 #Package lists
 PKG_DEVICE=$(grep "^[^#;]" $PROFILES/arm-profiles/devices/$DEVICE | awk '{print $1}')
