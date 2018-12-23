@@ -5,6 +5,14 @@ TMPDIR=/var/tmp/manjaro-arm-installer
 PROFILES=/var/tmp/manjaro-arm-installer/profiles
 ARCH='aarch64'
 
+# clearing variables
+DEVICE=""
+EDITION=""
+USER=""
+PASSWORD=""
+ROOTPASSWORD=""
+SDCARD=""
+
 
 # Functions
 msg() {
