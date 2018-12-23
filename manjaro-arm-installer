@@ -66,23 +66,6 @@ create_install() {
     fi
 
     msg "Creating install for $DEVICE..."
-
-    # backup host mirrorlist
-    #sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-orig
-
-    # Create arm mirrlorlist
-    #echo "Server = http://mirrors.dotsrc.org/manjaro-arm/stable/\$arch/\$repo/" > mirrorlist
-    #sudo mv mirrorlist /etc/pacman.d/mirrorlist
-  
-    # create chroot on SD card
-    #    sudo pacstrap -G -c -C $LIBDIR/pacman.conf.$ARCH $TMPDIR/root base manjaro-arm-keyring
-    
-    # Enable cross architecture Chrooting
-    #if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-    #    sudo cp /usr/bin/qemu-arm-static $TMPDIR/root/usr/bin/
-    #else
-    #    sudo cp /usr/bin/qemu-aarch64-static $TMPDIR/root/usr/bin/
-    #fi
     
     # fetch and extract rootfs
     msg "Downloading latest $ARCH rootfs..."
@@ -99,10 +82,6 @@ create_install() {
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
     sudo systemd-nspawn -D $TMPDIR/root pacman -S base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
-
-    # restore original mirrorlist to host system
-    #sudo mv /etc/pacman.d/mirrorlist-orig /etc/pacman.d/mirrorlist
-    #sudo pacman -Syy
     
     msg "Enabling services..."
     # Enable services
@@ -297,23 +276,8 @@ cleanup () {
 fi
 }
 
-# Asking for user input!
-#read -p 'What device is this for? [Options: rpi3, oc2 and pinebook] ' DEVICE
-#read -p 'What edition do you want? [Options: minimal, lxqt and kde] ' EDITION
-#read -p 'What is the path to the SD card? (example: /dev/sdb)? ' SDCARD
-#read -p 'What username do you want? ' USER
-#read -sp "What password should $USER have? " PASSWORD
-#read -sp "
-#What password should the root user have? " ROOTPASSWORD
-#echo " 
-#" #to fix next line from being in the password line
-#echo "Device = $DEVICE"
-#echo "Edition = $EDITION"
-#echo "Path to SD Card = $SDCARD"
-#echo "Username = $USER"
 
-
-# Using ncurses to ask for user input for variables
+# Using Dialog to ask for user input for variables
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 51 6 \
         "rpi3" "Raspberry Pi 3" \
@@ -425,15 +389,6 @@ getarmprofiles
 PKG_DEVICE=$(grep "^[^#;]" $PROFILES/arm-profiles/devices/$DEVICE | awk '{print $1}')
 PKG_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/editions/$EDITION | awk '{print $1}')
 SRV_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/services/$EDITION | awk '{print $1}')
-
-# Remove '/dev/' from the name 
-#DEV_NAME=`echo "$SDCARD" | cut -d "/" -f 3`
-
-# Get size of SDCard (final sector)
-#SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
-
-# Set the ending sector that the partition should be resized too
-#END_SECTOR=`expr $SECTOR_SIZE - 1`
 
 
 # Commands
