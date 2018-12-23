@@ -422,13 +422,13 @@ PKG_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/editions/$EDITION | awk '{pri
 SRV_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/services/$EDITION | awk '{print $1}')
 
 # Remove '/dev/' from the name 
-DEV_NAME=`echo "$SDCARD" | cut -d "/" -f 3`
+#DEV_NAME=`echo "$SDCARD" | cut -d "/" -f 3`
 
 # Get size of SDCard (final sector)
-SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
+#SECTOR_SIZE=`cat /sys/block/${DEV_NAME}/size`
 
 # Set the ending sector that the partition should be resized too
-END_SECTOR=`expr $SECTOR_SIZE - 1`
+#END_SECTOR=`expr $SECTOR_SIZE - 1`
 
 
 # Commands
