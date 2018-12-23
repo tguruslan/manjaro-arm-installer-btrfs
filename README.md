@@ -6,15 +6,17 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 
 
 ## Dependencies:
+* bash
 * wget
 * git
 * systemd
 * dialog
+* parted
+* libarchive
 
 ## Installing:
 To use this script, please make sure that the following is correct:
 
-* your default Shell is Bash.
 * an SD card with at least 4 GB storage is plugged in.
 
 ## Known Issues:
@@ -24,7 +26,7 @@ To use this script, please make sure that the following is correct:
 To use this script, simple run it as normal user after you make it executable:
 ```
 chmod +x manjaro-arm-installer
-./manjaro-arm-installer
+bash /manjaro-arm-installer
 ```
 
 ## Other notes:
