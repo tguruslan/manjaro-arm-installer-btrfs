@@ -377,7 +377,7 @@ W=()
 while read -r line; do
     let i=$i+1
     W+=($line "")
-done < <( lsblk -adn -o NAME )
+done < $(lsblk -adn -o NAME)
 SDCARD=$(dialog --title "Manjaro-ARM Installer" \
 	--menu "Chose your SDCard" 20 50 4 \
        	"${W[@]}" 3>&2 2>&1 1>&3)
