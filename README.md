@@ -9,12 +9,12 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * wget
 * git
 * systemd
-* ncurses
+* dialog
 
 ## Installing:
 To use this script, please make sure that the following is correct:
 
-* /var/tmp/ is present.
+* your default Shell is Bash.
 * an SD card with at least 4 GB storage is plugged in.
 
 ## Known Issues:
@@ -24,10 +24,10 @@ To use this script, please make sure that the following is correct:
 To use this script, simple run it as normal user after you make it executable:
 ```
 chmod +x manjaro-arm-installer
-sh manjaro-arm-installer
+./manjaro-arm-installer
 ```
 
-## other notes:
+## Other notes:
 This script will soon by available as a **Arch** (*pkg.tar.xz*) package in my **Manjaro Strit** repo.
 
 This script **should** be distro-agnostic, which means you can install *Manjaro ARM* from **any** distro, as long as the dependencies are met.

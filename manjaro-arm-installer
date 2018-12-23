@@ -87,7 +87,7 @@ create_install() {
     # fetch and extract rootfs
     msg "Downloading latest $ARCH rootfs..."
     cd $TMPDIR
-    wget https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
+    wget https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz 1> /dev/null 2>&1
     
     msg "Extracting $ARCH rootfs..."
     sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
@@ -101,8 +101,8 @@ create_install() {
     sudo systemd-nspawn -D $TMPDIR/root pacman -S base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
 
     # restore original mirrorlist to host system
-    sudo mv /etc/pacman.d/mirrorlist-orig /etc/pacman.d/mirrorlist
-    sudo pacman -Syy
+    #sudo mv /etc/pacman.d/mirrorlist-orig /etc/pacman.d/mirrorlist
+    #sudo pacman -Syy
     
     msg "Enabling services..."
     # Enable services
@@ -178,15 +178,15 @@ prepare_card () {
     # For Raspberry Pi devices
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
         #partition with boot and root
-        sudo parted -s $SDCARD mklabel msdos
-        sudo parted -s $SDCARD mkpart primary fat32 0% 100M
-        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start`
+        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        sudo parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
+        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start` 
         SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/size`
         END_SECTOR=$(expr $START + $SIZE)
-        sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100%
-        sudo partprobe $SDCARD
-        sudo mkfs.vfat "${SDCARD}1"
-        sudo mkfs.ext4 "${SDCARD}2"
+        sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        sudo mkfs.vfat "${SDCARD}1" 1> /dev/null 2>&1
+        sudo mkfs.ext4 "${SDCARD}2" 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -197,13 +197,13 @@ prepare_card () {
     # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
         #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8
+        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos
-        sudo parted -s $SDCARD mkpart primary ext4 0% 100%
-        sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
+        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -214,13 +214,13 @@ prepare_card () {
     elif [[ "$DEVICE" = "pinebook" ]]; then
 
     #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8
+        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos
-        sudo parted -s $SDCARD mkpart primary ext4 0% 100%
-        sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
+        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
@@ -231,13 +231,13 @@ prepare_card () {
     elif [[ "$DEVICE" = "rockpro64" ]]; then
 
     #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8
+        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos
-        sudo parted -s $SDCARD mkpart primary ext4 0% 100%
-        sudo partprobe $SDCARD
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1
+        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
@@ -257,42 +257,42 @@ cleanup () {
         sudo umount $TMPDIR/root
         sudo umount $TMPDIR/boot
         sudo rm -r $TMPDIR/root $TMPDIR/boot
-        sudo partprobe $SDCARD
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
         
 # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
     #flash bootloader
         cd $TMPDIR/root/boot/
-        sudo ./sd_fusing.sh $SDCARD
+        sudo ./sd_fusing.sh $SDCARD 1> /dev/null 2>&1
         cd ~
 
     #clean up
         sudo umount $TMPDIR/root
         sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
         
     # For pinebook device
     elif [[ "$DEVICE" = "pinebook" ]]; then
     #flash bootloader
-        sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1
+        sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1 1> /dev/null 2>&1
         
     #clean up
         sudo umount $TMPDIR/root
         sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
         
         
     # For rockpro64 device
     elif [[ "$DEVICE" = "rockpro64" ]]; then
     #flash bootloader
-        sudo dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc
-        sudo dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc
-        sudo dd if=$TMPDIR/root/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc
+        sudo dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
+        sudo dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
+        sudo dd if=$TMPDIR/root/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
         
     #clean up
         sudo umount $TMPDIR/root
         sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD
+        sudo partprobe $SDCARD 1> /dev/null 2>&1
         
 fi
 }
@@ -314,21 +314,26 @@ fi
 
 
 # Using ncurses to ask for user input for variables
-DEVICE=$(dialog --clear --title "Manjaro-ARM Installer" \
-        --menu "Choose a device:" 20 51 4 \
+DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
+        --menu "Choose a device:" 20 51 6 \
         "rpi3" "Raspberry Pi 3" \
         "oc2" "Odroid C2" \
-	"pinebook" "PineBook" 3>&1 1>&2 2>&3 3>&-)
+	"pinebook" "PineBook" \
+	"rpi2" "Raspberry Pi 2 (not maintained)" \
+	"oc1" "Odroid C1/C1+ (not maintained)" \
+	"xu4" "Odroid XU4 (not maintained)" 3>&1 1>&2 2>&3 3>&-)
 
 
 #The if statement makes sure that the user has put in something in the previous prompt. If not (left blank or pressed cancel) the script will end
 if [ ! -z "$DEVICE" ]
 then
-EDITION=$(dialog --clear --title "Manjaro-ARM Installer" \
-	--menu "Choose an edition:" 20 50 4 \
+EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
+	--menu "Choose an edition:" 20 50 5 \
 	"minimal" "Minimal Edition (Just CLI)" \
 	"lxqt" "Full LXQT Desktop and apps (lightweight)" \
-	"kde" "Full KDE Desktop (Heavy)" 3>&1 1>&2 2>&3 3>&-) 
+	"kde" "Full KDE Desktop (Heavy)" \
+	"mate" "Full MATE desktop and apps (lightweight, not maintained)" \
+	"i3" "Mininal i3 WM with apps (very light)" 3>&1 1>&2 2>&3 3>&-) 
 
 else 
 	clear
@@ -338,7 +343,7 @@ fi
 
 if [ ! -z "$EDITION" ]
 then
-USER=$(dialog --clear --title "Manjaro-ARM Installer" \
+USER=$(dialog --clear --title "Manjaro ARM Installer" \
 	--inputbox "Enter username:" 8 50 \
         3>&1 1>&2 2>&3 3>&-)
 else 
@@ -351,8 +356,8 @@ fi
 
 if [ ! -z "$USER" ]
 then
-PASSWORD=$(dialog --clear --title "Manjaro-ARM Installer" \
-	--passwordbox "Enter Password:" 8 50 \
+PASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
+	--passwordbox "Enter Password for $USER:" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 
@@ -364,7 +369,7 @@ fi
 
 if [ ! -z "$PASSWORD" ]
 then
-ROOTPASSWORD=$(dialog --clear --title "Manjaro-ARM Installer" \
+ROOTPASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
 	--passwordbox "Enter Root Password:" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
@@ -385,9 +390,9 @@ W=()
 while read -r line; do
     let i=$i+1
     W+=($line "")
-done < $(lsblk -adn -o NAME)
-SDCARD=$(dialog --title "Manjaro-ARM Installer" \
-	--menu "Chose your SDCard" 20 50 4 \
+done < <( lsblk -adn -o NAME )
+SDCARD=$(dialog --title "Manjaro ARM Installer" \
+	--menu "Chose your SDCard" 20 50 10 \
        	"${W[@]}" 3>&2 2>&1 1>&3)
 
 # add /dev/ to the selected option above
@@ -403,7 +408,7 @@ clear
 echo "Device = $DEVICE"
 echo "Edition = $EDITION"
 echo "User name = $USER"
-echo "Password = ********** ($PASSWORD)" #password is here for testing purposes
+echo "Password for $USER = ********** ($PASSWORD)" #password is here for testing purposes
 echo "Root Password = ********** ($ROOTPASSWORD)" #password is here for testing purposes
 echo "SDCard = $SDCARD"
 
