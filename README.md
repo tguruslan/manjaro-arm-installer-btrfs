@@ -17,10 +17,10 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 ## Installing:
 To use this script, please make sure that the following is correct:
 
-* an SD card with at least 4 GB storage is plugged in.
+* an SD card with at least 8 GB storage is plugged in.
 
 ## Known Issues:
-* none
+* Because `dialog` is weird, the script needs to be run in `bash`.
 
 ## Usage:
 To use this script, simple run it as normal user after you make it executable:

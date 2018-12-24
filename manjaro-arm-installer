@@ -14,7 +14,6 @@ ROOTPASSWORD=""
 SDCARD=""
 
 # Sanity checks for dependencies
-
 if [ ! -f /usr/bin/sudo ]
     echo "sudo command is missing! Please install sudo!"
     exit 1
@@ -321,7 +320,7 @@ EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
 	"minimal" "Minimal Edition (Just CLI)" \
 	"lxqt" "Full LXQT Desktop and apps (lightweight)" \
 	"kde" "Full KDE/Plasma Desktop (Heavy)" \
-	"mate" "Full MATE desktop and apps (lightweight, not maintained)" \
+	"mate" "Full MATE desktop and apps (lightweight, unmaintained)" \
 	"i3" "Mininal i3 WM with apps (very light)" 3>&1 1>&2 2>&3 3>&-) 
 
 else 
