@@ -12,6 +12,8 @@ USER=""
 PASSWORD=""
 ROOTPASSWORD=""
 SDCARD=""
+TIMEZONE=""
+LOCALE=""
 
 # Sanity checks for dependencies
 if [ ! -f /usr/bin/sudo ]
@@ -142,6 +144,8 @@ create_install() {
     #system setup
     sudo systemd-nspawn -D $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
     sudo systemd-nspawn -D $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root timedatectl set-timezone "$TIMEZONE"
+    sudo systemd-nspawn -D $TMPDIR/root localectl set-locale "$LOCALE"
     
     msg "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
@@ -391,6 +395,29 @@ else
 fi
 
 
+if [ ! -z "$SDCARD" ]
+then
+TIMEZONE=$(dialog --clear --title "Manjaro ARM Installer" \
+	--inputbox "Enter timezone (example Europe/London):" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+
+if [ ! -z "$TIMEZONE" ]
+then
+LOCALE=$(dialog --clear --title "Manjaro ARM Installer" \
+	--inputbox "Enter locale (example en_US-utf8):" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
 # List all the responses upon completion to be verified
 clear
 echo "Device = $DEVICE"
@@ -399,6 +426,8 @@ echo "User name = $USER"
 echo "Password for $USER = ($PASSWORD)"
 echo "Root Password = ($ROOTPASSWORD)"
 echo "SDCard = $SDCARD"
+echo "Timezone = $TIMEZONE"
+echo "Locale = $LOCALE"
 
 echo "Are the above settings correct?"
 select yn in "Yes" "No"; do
