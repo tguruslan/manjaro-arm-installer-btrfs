@@ -16,28 +16,28 @@ TIMEZONE=""
 LOCALE=""
 
 # Sanity checks for dependencies
-if [ ! -f /usr/bin/sudo ]
-    echo "sudo command is missing! Please install sudo!"
-    exit 1
-    elif [ ! -f /usr/bin/git ]
-    echo "git command is missing! Please install git!"
-    exit 1
-    elif [ ! -f /usr/bin/parted ]
-    echo "parted command is missing! Please install parted!"
-    exit 1
-    elif [ ! -f /usr/bin/systemd-nspawn ]
-    echo "systemd-nspawn command is missing! Please install systemd!"
-    exit 1
-    elif [ ! -f /usr/bin/wget ]
-    echo "wget command is missing! Please install wget!"
-    exit 1
-    elif [ ! -f /usr/bin/dialog ]
-    echo "dialog command is missing! Please install dialog!"
-    exit 1
-    elif [ ! -f /usr/bin/bsdtar ]
-    echo "bsdtar command is missing! Please install libarchive!"
-    exit 1
-fi
+#if [ ! -f /usr/bin/sudo ]
+#    echo "sudo command is missing! Please install sudo!"
+#    exit 1
+#    elif [ ! -f /usr/bin/git ]
+#    echo "git command is missing! Please install git!"
+#    exit 1
+#    elif [ ! -f /usr/bin/parted ]
+#    echo "parted command is missing! Please install parted!"
+#    exit 1
+#    elif [ ! -f /usr/bin/systemd-nspawn ]
+#    echo "systemd-nspawn command is missing! Please install systemd!"
+#    exit 1
+#    elif [ ! -f /usr/bin/wget ]
+#    echo "wget command is missing! Please install wget!"
+#    exit 1
+#    elif [ ! -f /usr/bin/dialog ]
+#    echo "dialog command is missing! Please install dialog!"
+#    exit 1
+#    elif [ ! -f /usr/bin/bsdtar ]
+#    echo "bsdtar command is missing! Please install libarchive!"
+#    exit 1
+#fi
 
 
 # Functions
@@ -107,7 +107,7 @@ create_install() {
     
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    sudo systemd-nspawn -D $TMPDIR/root pacman -S base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
+    sudo systemd-nspawn -D $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
     
     msg "Enabling services..."
     # Enable services
@@ -410,7 +410,7 @@ fi
 if [ ! -z "$TIMEZONE" ]
 then
 LOCALE=$(dialog --clear --title "Manjaro ARM Installer" \
-	--inputbox "Enter locale (example en_US-utf8):" 8 50 \
+	--inputbox "Enter locale (example en_US.UTF-8):" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 

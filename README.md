@@ -5,7 +5,7 @@
 This script is "interactive". Meaning that it asks you questions when run to customize your install. Like username, password etc.
 
 
-## Dependencies:
+## Dependencies (Arch package names):
 * bash
 * wget
 * git
@@ -13,6 +13,7 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * dialog
 * parted
 * libarchive
+* binfmt-qemu-static
 
 ## Installing:
 To use this script, please make sure that the following is correct:
