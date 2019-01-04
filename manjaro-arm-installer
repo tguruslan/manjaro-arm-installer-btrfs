@@ -2,7 +2,7 @@
 
 # Set globals
 TMPDIR=/var/tmp/manjaro-arm-installer
-PROFILES=/var/tmp/manjaro-arm-installer/profiles
+#PROFILES=/var/tmp/manjaro-arm-installer/profiles
 ARCH='aarch64'
 
 # clearing variables
@@ -16,28 +16,28 @@ SDCARD=""
 #LOCALE=""
 
 # Sanity checks for dependencies
-#if [ ! -f /usr/bin/sudo ]
-#    echo "sudo command is missing! Please install sudo!"
-#    exit 1
-#    elif [ ! -f /usr/bin/git ]
-#    echo "git command is missing! Please install git!"
-#    exit 1
-#    elif [ ! -f /usr/bin/parted ]
-#    echo "parted command is missing! Please install parted!"
-#    exit 1
-#    elif [ ! -f /usr/bin/systemd-nspawn ]
-#    echo "systemd-nspawn command is missing! Please install systemd!"
-#    exit 1
-#    elif [ ! -f /usr/bin/wget ]
-#    echo "wget command is missing! Please install wget!"
-#    exit 1
-#    elif [ ! -f /usr/bin/dialog ]
-#    echo "dialog command is missing! Please install dialog!"
-#    exit 1
-#    elif [ ! -f /usr/bin/bsdtar ]
-#    echo "bsdtar command is missing! Please install libarchive!"
-#    exit 1
-#fi
+if [ ! -f /usr/bin/sudo ]; then
+    echo "sudo command is missing! Please install sudo!"
+    exit 1
+    elif [ ! -f /usr/bin/git ]; then
+    echo "git command is missing! Please install git!"
+    exit 1
+    elif [ ! -f /usr/bin/parted ]; then
+    echo "parted command is missing! Please install parted!"
+    exit 1
+    elif [ ! -f /usr/bin/systemd-nspawn ]; then
+    echo "systemd-nspawn command is missing! Please install systemd!"
+    exit 1
+    elif [ ! -f /usr/bin/wget ]; then
+    echo "wget command is missing! Please install wget!"
+    exit 1
+    elif [ ! -f /usr/bin/dialog ]; then
+    echo "dialog command is missing! Please install dialog!"
+    exit 1
+    elif [ ! -f /usr/bin/bsdtar ]; then
+    echo "bsdtar command is missing! Please install libarchive!"
+    exit 1
+fi
 
 
 # Functions
@@ -72,14 +72,14 @@ show_elapsed_time(){
 }
 
 getarmprofiles () {
-    if ls $PROFILES/arm-profiles/* 1> /dev/null 2>&1; then
-        cd $PROFILES/arm-profiles
-        git pull
+    if ls $TMPDIR/arm-profiles/* 1> /dev/null 2>&1; then
+        cd $TMPDIR/arm-profiles
+        git pull 1> /dev/null 2>&1
     else
-        sudo mkdir -p $PROFILES
-        sudo chmod 777 $PROFILES
-        cd $PROFILES
-        git clone https://gitlab.com/Strit/arm-profiles.git
+        sudo mkdir -p $TMPDIR
+        sudo chmod 777 $TMPDIR
+        cd $TMPDIR
+        git clone https://gitlab.com/Strit/arm-profiles.git 1> /dev/null 2>&1
     fi
 
 }
@@ -107,7 +107,7 @@ create_install() {
     
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    sudo systemd-nspawn -D $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION lsb-release --needed --noconfirm
+    sudo systemd-nspawn -D $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION --needed --noconfirm
     
     msg "Enabling services..."
     # Enable services
