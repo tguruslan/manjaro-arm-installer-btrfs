@@ -2,7 +2,6 @@
 
 # Set globals
 TMPDIR=/var/tmp/manjaro-arm-installer
-#PROFILES=/var/tmp/manjaro-arm-installer/profiles
 ARCH='aarch64'
 
 # clearing variables
@@ -12,8 +11,8 @@ USER=""
 PASSWORD=""
 ROOTPASSWORD=""
 SDCARD=""
-#TIMEZONE=""
-#LOCALE=""
+TIMEZONE=""
+LOCALE=""
 
 # Sanity checks for dependencies
 if [ ! -f /usr/bin/sudo ]; then
@@ -96,7 +95,7 @@ create_install() {
     # fetch and extract rootfs
     msg "Downloading latest $ARCH rootfs..."
     cd $TMPDIR
-    wget https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz 1> /dev/null 2>&1
+    wget -q --show-progress --progress=bar:force:noscroll https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
     
     msg "Extracting $ARCH rootfs..."
     sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
@@ -119,7 +118,7 @@ create_install() {
     fi
 
     msg "Applying overlay for $EDITION..."
-    sudo cp -ap $PROFILES/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
+    sudo cp -ap $TMPDIR/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
     
     msg "Setting up users..."
     #setup users
@@ -144,8 +143,10 @@ create_install() {
     #system setup
     sudo systemd-nspawn -D $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
     sudo systemd-nspawn -D $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
-#    sudo systemd-nspawn -D $TMPDIR/root timedatectl set-timezone "$TIMEZONE"
-#    sudo systemd-nspawn -D $TMPDIR/root localectl set-locale "$LOCALE"
+    sudo systemd-nspawn -D $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root sed -i s/"LANG=en_US.utf8"/"LANG=$LOCALE"/g /etc/locale.conf 1> /dev/null 2>&1
+    sudo systemd-nspawn -D $TMPDIR/root locale-gen
     
     msg "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
@@ -175,7 +176,7 @@ create_install() {
     
     # Remove temp files on host
     sudo rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
-    sudo rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz
+    sudo rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz*
 
     msg "$DEVICE $EDITION install complete"
 }
@@ -310,7 +311,7 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 51 6 \
         "rpi3" "Raspberry Pi 3" \
         "oc2" "Odroid C2" \
-	"pinebook" "PineBook" \
+	"pinebook" "Pinebook" \
 	"rpi2" "Raspberry Pi 2 (unmaintained)" \
 	"oc1" "Odroid C1/C1+ (unmaintained)" \
 	"xu4" "Odroid XU4 (unmaintained)" 3>&1 1>&2 2>&3 3>&-)
@@ -382,9 +383,9 @@ W=()
 while read -r line; do
     let i=$i+1
     W+=($line "")
-done < <( lsblk -adn -o NAME )
+done < <( lsblk -dn -o NAME )
 SDCARD=$(dialog --title "Manjaro ARM Installer" \
-	--menu "Chose your SDCard - Be sure the correct drive is selected!" 20 50 15 \
+	--menu "Chose your SDCard - Be sure the correct drive is selected!" 20 50 5 \
        	"${W[@]}" 3>&2 2>&1 1>&3)
 
 # add /dev/ to the selected option above
@@ -395,47 +396,68 @@ else
 fi
 
 
-#if [ ! -z "$SDCARD" ]
-#then
-#TIMEZONE=$(dialog --clear --title "Manjaro ARM Installer" \
+if [ ! -z "$SDCARD" ]
+then
+let i=0
+W=()
+while read -r line; do
+    let i=$i+1
+    W+=($line "")
+done < <( timedatectl list-timezones )
+TIMEZONE=$(dialog --clear --title "Manjaro ARM Installer" \
+    --menu "Chose your timezone!" 20 50 15 \
+        "${W[@]}" 3>&1 1>&2 2>&3 3>&- \
+	)
 #	--inputbox "Enter timezone (example Europe/London):" 8 50 \
-#        3>&1 1>&2 2>&3 3>&- \
-#	)
-#else 
-#	clear
-#	exit 1
-#fi
+else 
+	clear
+	exit 1
+fi
 
 
-#if [ ! -z "$TIMEZONE" ]
-#then
-#LOCALE=$(dialog --clear --title "Manjaro ARM Installer" \
+if [ ! -z "$TIMEZONE" ]
+then
+let i=0
+W=()
+while read -r line; do
+    let i=$i+1
+    W+=($line "")
+done < <( cat /etc/locale.gen | grep "UTF-8" | tail -n +2 | awk '{print $1}' | sed -e 's/^#*//' )
+LOCALE=$(dialog --clear --title "Manjaro ARM Installer" \
+	--menu "Chose your locale!" 20 50 15 \
+        "${W[@]}" 3>&1 1>&2 2>&3 3>&- \
+	)
 #	--inputbox "Enter locale (example en_US.UTF-8):" 8 50 \
-#        3>&1 1>&2 2>&3 3>&- \
-#	)
-#else 
-#	clear
-#	exit 1
-#fi
+else 
+	clear
+	exit 1
+fi
 
-# List all the responses upon completion to be verified
-clear
-echo "Device = $DEVICE"
-echo "Edition = $EDITION"
-echo "User name = $USER"
-echo "Password for $USER = ($PASSWORD)"
-echo "Root Password = ($ROOTPASSWORD)"
-echo "SDCard = $SDCARD"
-#echo "Timezone = $TIMEZONE"
-#echo "Locale = $LOCALE"
+if [ ! -z "$LOCALE" ]
+then
+dialog --clear --title "Manjaro ARM Installer" \
+    --yesno "Is the below information correct:
+    Device = $DEVICE
+    Edition = $EDITION
+    Username = $USER
+    Password for $USER = $PASSWORD
+    Password for root = $ROOTPASSWORD
+    SD/eMMC card = $SDCARD
+    Timezone = $TIMEZONE
+    Locale = $LOCALE" 20 50 \
+    3>&1 1>&2 2>&3 3>&-
+else
+    clear
+    exit 1
+fi
 
-echo "Are the above settings correct?"
-select yn in "Yes" "No"; do
-    case $yn in
-        Yes ) echo "Continuing..."; break;;
-        No ) exit 1;;
-    esac
-done
+response=$?
+case $response in
+   0) clear; msg "Proceeding....";;
+   1) clear; msg "Installation aborted...."; exit 1;;
+   255) clear; msg "Installation aborted..."; exit 1;;
+esac
+
 
 if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
     ARCH='armv7h'
@@ -447,9 +469,9 @@ fi
 getarmprofiles
 
 #Package lists
-PKG_DEVICE=$(grep "^[^#;]" $PROFILES/arm-profiles/devices/$DEVICE | awk '{print $1}')
-PKG_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/editions/$EDITION | awk '{print $1}')
-SRV_EDITION=$(grep "^[^#;]" $PROFILES/arm-profiles/services/$EDITION | awk '{print $1}')
+PKG_DEVICE=$(grep "^[^#;]" $TMPDIR/arm-profiles/devices/$DEVICE | awk '{print $1}')
+PKG_EDITION=$(grep "^[^#;]" $TMPDIR/arm-profiles/editions/$EDITION | awk '{print $1}')
+SRV_EDITION=$(grep "^[^#;]" $TMPDIR/arm-profiles/services/$EDITION | awk '{print $1}')
 
 
 # Commands

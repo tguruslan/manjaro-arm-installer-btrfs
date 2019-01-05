@@ -18,16 +18,18 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 ## Installing:
 To use this script, please make sure that the following is correct:
 
-* an SD card with at least 8 GB storage is plugged in.
+* an SD/eMMC card with at least 8 GB storage is plugged in (but not mounted).
+* that your user account has `sudo` rights.
 
 ## Known Issues:
 * Because `dialog` is weird, the script needs to be run in `bash`.
+* Timezone does not get set, even though it's chosen.
 
 ## Usage:
 To use this script, simple run it as normal user after you make it executable:
 ```
 chmod +x manjaro-arm-installer
-bash /manjaro-arm-installer
+bash manjaro-arm-installer
 ```
 
 ## Other notes:
