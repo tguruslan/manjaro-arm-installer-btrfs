@@ -3,6 +3,7 @@
 # Set globals
 TMPDIR=/var/tmp/manjaro-arm-installer
 ARCH='aarch64'
+NSPAWN='sudo systemd-nspawn --timezone=off -D'
 
 # clearing variables
 DEVICE=""
@@ -101,20 +102,20 @@ create_install() {
     sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
     
     msg "Setting up keyrings..."
-    sudo systemd-nspawn -D $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root pacman-key --populate archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root pacman-key --populate archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
     msg "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    sudo systemd-nspawn -D $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION --needed --noconfirm
+    $NSPAWN $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION --needed --noconfirm
     
     msg "Enabling services..."
     # Enable services
-    sudo systemd-nspawn -D $TMPDIR/root systemctl enable systemd-networkd.service getty.target haveged.service dhcpcd.service 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root systemctl enable systemd-networkd.service getty.target haveged.service dhcpcd.service 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
 
     if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
-        sudo systemd-nspawn -D $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     fi
 
     msg "Applying overlay for $EDITION..."
@@ -127,26 +128,26 @@ create_install() {
     echo "$PASSWORD" >> $TMPDIR/password
     echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
     echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
-    sudo systemd-nspawn -D $TMPDIR/root passwd root < $TMPDIR/rootpassword 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root passwd root < $TMPDIR/rootpassword 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
 
     
     msg "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
         echo "No user services for $EDITION edition"
     else
-        sudo systemd-nspawn -D $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
     fi
 
     msg "Setting up system settings..."
     #system setup
-    sudo systemd-nspawn -D $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root sed -i s/"LANG=en_US.utf8"/"LANG=$LOCALE"/g /etc/locale.conf 1> /dev/null 2>&1
-    sudo systemd-nspawn -D $TMPDIR/root locale-gen
+    $NSPAWN $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root sed -i s/"LANG=en_US.utf8"/"LANG=$LOCALE"/g /etc/locale.conf 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root locale-gen
     
     msg "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
@@ -159,8 +160,8 @@ create_install() {
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
         echo "No device setups for $DEVICE..."
     elif [[ "$DEVICE" = "pinebook" ]]; then
-        sudo systemd-nspawn -D $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
-        sudo systemd-nspawn -D $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pinebook-user.service 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pinebook-user.service 1> /dev/null 2>&1
     else
         echo ""
     fi
