@@ -142,8 +142,10 @@ create_install() {
     $NSPAWN $TMPDIR/root update-ca-trust 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
-    $NSPAWN $TMPDIR/root sed -i s/"LANG=en_US.utf8"/"LANG=$LOCALE"/g /etc/locale.conf 1> /dev/null 2>&1
+    echo "LANG=$LOCALE" | sudo tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root locale-gen
+    echo "KEYMAP=$KEYMAP" | sudo tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
+    echo "$HOSTNAME" | sudo tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
     
     msg "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
@@ -407,7 +409,6 @@ TIMEZONE=$(dialog --clear --title "Manjaro ARM Installer" \
     --menu "Chose your timezone!" 20 50 15 \
         "${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
-#	--inputbox "Enter timezone (example Europe/London):" 8 50 \
 else 
 	clear
 	exit 1
@@ -426,7 +427,6 @@ LOCALE=$(dialog --clear --title "Manjaro ARM Installer" \
 	--menu "Chose your locale!" 20 50 15 \
         "${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
-#	--inputbox "Enter locale (example en_US.UTF-8):" 8 50 \
 else 
 	clear
 	exit 1
@@ -434,16 +434,44 @@ fi
 
 if [ ! -z "$LOCALE" ]
 then
+let i=0
+W=()
+while read -r line; do
+    let i=$i+1
+    W+=($line "")
+done < <( localectl list-keymaps )
+KEYMAP=$(dialog --clear --title "Manjaro ARM Installer" \
+	--menu "Choose your locale!" 20 50 15 \
+        "${W[@]}" 3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [ ! -z "$KEYMAP" ]
+then
+HOSTNAME=$(dialog --clear --title "Manjaro ARM Installer" \
+	--inputbox "Enter desired hostname for this system:" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [ ! -z "$HOSTNAME" ]
+then
 dialog --clear --title "Manjaro ARM Installer" \
     --yesno "Is the below information correct:
-    Device = $DEVICE
-    Edition = $EDITION
     Username = $USER
     Password for $USER = $PASSWORD
     Password for root = $ROOTPASSWORD
-    SD/eMMC card = $SDCARD
+    SD Card = $SDCARD
     Timezone = $TIMEZONE
-    Locale = $LOCALE" 20 50 \
+    Locale = $LOCALE
+    Keyboard layout = $KEYMAP
+    Hostname = $HOSTNAME" 20 50 \
     3>&1 1>&2 2>&3 3>&-
 else
     clear
