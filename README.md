@@ -26,6 +26,7 @@ To use this script, please make sure that the following is correct:
 
 ## Usage:
 To use this script, simple run it as normal user after you make it executable:
+
 ```
 chmod +x manjaro-arm-installer
 bash manjaro-arm-installer
