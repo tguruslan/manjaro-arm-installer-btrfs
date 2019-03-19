@@ -49,6 +49,13 @@ msg() {
       printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
  }
 
+info() {
+    ALL_OFF="\e[1;0m"
+    BOLD="\e[1;1m"
+    BLUE="${BOLD}\e[1;34m"
+      local mesg=$1; shift
+      printf "${BLUE}  ->${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+ }
 
 usage_build_installer() {
     echo "Usage: ${0##*/} [options]"
@@ -72,6 +79,7 @@ show_elapsed_time(){
 }
 
 getarmprofiles () {
+    info "Getting package lists ready for $DEVICE $EDITION edition..."
     if ls $TMPDIR/arm-profiles/* 1> /dev/null 2>&1; then
         cd $TMPDIR/arm-profiles
         git pull 1> /dev/null 2>&1
@@ -94,30 +102,30 @@ create_install() {
     msg "Creating install for $DEVICE..."
     
     # fetch and extract rootfs
-    msg "Downloading latest $ARCH rootfs..."
+    info "Downloading latest $ARCH rootfs..."
     cd $TMPDIR
     wget -q --show-progress --progress=bar:force:noscroll https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
     
-    msg "Extracting $ARCH rootfs..."
+    info "Extracting $ARCH rootfs..."
     sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
     
-    msg "Setting up keyrings..."
+    info "Setting up keyrings..."
     $NSPAWN $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root pacman-key --populate archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
-    msg "Installing packages for $EDITION on $DEVICE..."
+    info "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
-    $NSPAWN $TMPDIR/root pacman -Syy base $PKG_DEVICE $PKG_EDITION --needed --noconfirm
+    $NSPAWN $TMPDIR/root pacman -Syyu base $PKG_DEVICE $PKG_EDITION --noconfirm
     
-    msg "Enabling services..."
+    info "Enabling services..."
     # Enable services
     $NSPAWN $TMPDIR/root systemctl enable systemd-networkd.service getty.target haveged.service dhcpcd.service 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
 
-    msg "Applying overlay for $EDITION..."
+    info "Applying overlay for $EDITION..."
     sudo cp -ap $TMPDIR/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
     
-    msg "Setting up users..."
+    info "Setting up users..."
     #setup users
     echo "$USER" > $TMPDIR/user
     echo "$PASSWORD" >> $TMPDIR/password
@@ -129,20 +137,20 @@ create_install() {
     $NSPAWN $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
 
     
-    msg "Enabling user services..."
+    info "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
         echo "No user services for $EDITION edition"
     else
         $NSPAWN $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
     fi
 
-    msg "Setting up system settings..."
+    info "Setting up system settings..."
     #system setup
     $NSPAWN $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
-    sudo rm -f $ROOTFS_IMG/rootfs_$ARCH/etc/ssl/certs/ca-certificates.crt
-    sudo rm -f $ROOTFS_IMG/rootfs_$ARCH/etc/ca-certificates/extracted/tls-ca-bundle.pem
-    sudo cp -a /etc/ssl/certs/ca-certificates.crt $ROOTFS_IMG/rootfs_$ARCH/etc/ssl/certs/
-    sudo cp -a /etc/ca-certificates/extracted/tls-ca-bundle.pem $ROOTFS_IMG/rootfs_$ARCH/etc/ca-certificates/extracted/
+    sudo rm -f $TMPDIR/root/etc/ssl/certs/ca-certificates.crt
+    sudo rm -f $TMPDIR/root/etc/ca-certificates/extracted/tls-ca-bundle.pem
+    sudo cp -a /etc/ssl/certs/ca-certificates.crt $TMPDIR/root/etc/ssl/certs/
+    sudo cp -a /etc/ca-certificates/extracted/tls-ca-bundle.pem $TMPDIR/root/etc/ca-certificates/extracted/
     $NSPAWN $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
     echo "LANG=$LOCALE" | sudo tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
@@ -151,7 +159,7 @@ create_install() {
     $NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
     echo "$HOSTNAME" | sudo tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
     
-    msg "Doing device specific setups for $DEVICE..."
+    info "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
         echo "dtparam=audio=on" | sudo tee --append $TMPDIR/root/boot/config.txt
         echo "hdmi_drive=2" | sudo tee --append $TMPDIR/root/boot/config.txt
@@ -165,7 +173,7 @@ create_install() {
         echo "No device specific setting needed for $DEVICE"
     fi
     
-    msg "Cleaning install for unwanted files..."
+    info "Cleaning install for unwanted files..."
        if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
         sudo rm $TMPDIR/root/usr/bin/qemu-arm-static
     else
@@ -173,6 +181,7 @@ create_install() {
     fi
     sudo rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
     sudo rm -rf $TMPDIR/root/var/log/*
+    sudo rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
     
     # Remove temp files on host
     sudo rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
