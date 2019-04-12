@@ -159,6 +159,7 @@ create_install() {
     $NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
     echo "$HOSTNAME" | sudo tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
     sudo chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
+    sudo chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
     
     info "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
@@ -183,6 +184,7 @@ create_install() {
     sudo rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
     sudo rm -rf $TMPDIR/root/var/log/*
     sudo rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
+    sudo rm -rf $TMPDIR/root/etc/machine-id
     
     # Remove temp files on host
     sudo rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
@@ -203,8 +205,8 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.vfat "${SDCARD}1" 1> /dev/null 2>&1
-        sudo mkfs.ext4 "${SDCARD}2" 1> /dev/null 2>&1
+        sudo mkfs.vfat "${SDCARD}p1" 1> /dev/null 2>&1
+        sudo mkfs.ext4 "${SDCARD}p2" 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -221,7 +223,7 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -238,7 +240,7 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
@@ -255,7 +257,7 @@ prepare_card () {
         sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         sudo parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
         sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}1 1> /dev/null 2>&1
+        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
