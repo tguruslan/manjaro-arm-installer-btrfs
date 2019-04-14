@@ -3,7 +3,7 @@
 # Set globals
 TMPDIR=/var/tmp/manjaro-arm-installer
 ARCH='aarch64'
-NSPAWN='sudo systemd-nspawn -q --resolv-conf=copy-host --timezone=off -D'
+NSPAWN='systemd-nspawn -q --resolv-conf=copy-host --timezone=off -D'
 
 # clearing variables
 DEVICE=""
@@ -15,11 +15,14 @@ SDCARD=""
 TIMEZONE=""
 LOCALE=""
 
+# check if root
+if [ "$EUID" -ne 0 ]
+  then echo "This script requires root permissions to run. Please run as root or with sudo!"
+  exit
+fi
+
 # Sanity checks for dependencies
-if [ ! -f /usr/bin/sudo ]; then
-    echo "sudo command is missing! Please install sudo!"
-    exit 1
-    elif [ ! -f /usr/bin/git ]; then
+if [ ! -f /usr/bin/git ]; then
     echo "git command is missing! Please install git!"
     exit 1
     elif [ ! -f /usr/bin/parted ]; then
@@ -84,8 +87,8 @@ getarmprofiles () {
         cd $TMPDIR/arm-profiles
         git pull 1> /dev/null 2>&1
     else
-        sudo mkdir -p $TMPDIR
-        sudo chmod 777 $TMPDIR
+        mkdir -p $TMPDIR
+        chmod 777 $TMPDIR
         cd $TMPDIR
         git clone https://gitlab.com/Strit/arm-profiles.git 1> /dev/null 2>&1
     fi
@@ -107,7 +110,7 @@ create_install() {
     wget -q --show-progress --progress=bar:force:noscroll https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
     
     info "Extracting $ARCH rootfs..."
-    sudo bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
+    bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
     
     info "Setting up keyrings..."
     $NSPAWN $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
@@ -123,7 +126,7 @@ create_install() {
     $NSPAWN $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
 
     info "Applying overlay for $EDITION..."
-    sudo cp -ap $TMPDIR/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
+    cp -ap $TMPDIR/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
     
     info "Setting up users..."
     #setup users
@@ -147,26 +150,26 @@ create_install() {
     info "Setting up system settings..."
     #system setup
     $NSPAWN $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
-    sudo rm -f $TMPDIR/root/etc/ssl/certs/ca-certificates.crt
-    sudo rm -f $TMPDIR/root/etc/ca-certificates/extracted/tls-ca-bundle.pem
-    sudo cp -a /etc/ssl/certs/ca-certificates.crt $TMPDIR/root/etc/ssl/certs/
-    sudo cp -a /etc/ca-certificates/extracted/tls-ca-bundle.pem $TMPDIR/root/etc/ca-certificates/extracted/
+    rm -f $TMPDIR/root/etc/ssl/certs/ca-certificates.crt
+    rm -f $TMPDIR/root/etc/ca-certificates/extracted/tls-ca-bundle.pem
+    cp -a /etc/ssl/certs/ca-certificates.crt $TMPDIR/root/etc/ssl/certs/
+    cp -a /etc/ca-certificates/extracted/tls-ca-bundle.pem $TMPDIR/root/etc/ca-certificates/extracted/
     $NSPAWN $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
-    echo "LANG=$LOCALE" | sudo tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
+    echo "LANG=$LOCALE" | tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root locale-gen
-    echo "KEYMAP=$KEYMAP" | sudo tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
+    echo "KEYMAP=$KEYMAP" | tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
-    echo "$HOSTNAME" | sudo tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
-    sudo chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
-    sudo chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
+    echo "$HOSTNAME" | tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
+    chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
+    chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
     
     info "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
-        echo "dtparam=audio=on" | sudo tee --append $TMPDIR/root/boot/config.txt
-        echo "hdmi_drive=2" | sudo tee --append $TMPDIR/root/boot/config.txt
-        echo "audio_pwm_mode=2" | sudo tee --append $TMPDIR/root/boot/config.txt
-        echo "/dev/mmcblk0p1  /boot   vfat    defaults        0       0" | sudo tee --append $TMPDIR/root/etc/fstab
+        echo "dtparam=audio=on" | tee --append $TMPDIR/root/boot/config.txt
+        echo "hdmi_drive=2" | tee --append $TMPDIR/root/boot/config.txt
+        echo "audio_pwm_mode=2" | tee --append $TMPDIR/root/boot/config.txt
+        echo "/dev/mmcblk0p1  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]]; then
@@ -177,18 +180,18 @@ create_install() {
     
     info "Cleaning install for unwanted files..."
        if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        sudo rm $TMPDIR/root/usr/bin/qemu-arm-static
+        rm $TMPDIR/root/usr/bin/qemu-arm-static
     else
-        sudo rm $TMPDIR/root/usr/bin/qemu-aarch64-static
+        rm $TMPDIR/root/usr/bin/qemu-aarch64-static
     fi
-    sudo rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
-    sudo rm -rf $TMPDIR/root/var/log/*
-    sudo rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
-    sudo rm -rf $TMPDIR/root/etc/machine-id
+    rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
+    rm -rf $TMPDIR/root/var/log/*
+    rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
+    rm -rf $TMPDIR/root/etc/machine-id
     
     # Remove temp files on host
-    sudo rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
-    sudo rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz*
+    rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
+    rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz*
 
     msg "$DEVICE $EDITION install complete"
 }
@@ -198,71 +201,71 @@ prepare_card () {
     # For Raspberry Pi devices
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
         #partition with boot and root
-        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        sudo parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
         START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start` 
         SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/size`
         END_SECTOR=$(expr $START + $SIZE)
-        sudo parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.vfat "${SDCARD}p1" 1> /dev/null 2>&1
-        sudo mkfs.ext4 "${SDCARD}p2" 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}p1" 1> /dev/null 2>&1
+        mkfs.ext4 "${SDCARD}p2" 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        sudo mount ${SDCARD}1 $TMPDIR/boot
-        sudo mount ${SDCARD}2 $TMPDIR/root
+        mount ${SDCARD}1 $TMPDIR/boot
+        mount ${SDCARD}2 $TMPDIR/root
 
     # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
         #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
+        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
-        sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}1 $TMPDIR/root
+        chmod 777 -R $TMPDIR/root
+        mount ${SDCARD}1 $TMPDIR/root
 
     # For pine devices
    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
 
     #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
+        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        sudo parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
-        sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}1 $TMPDIR/root
+        chmod 777 -R $TMPDIR/root
+        mount ${SDCARD}1 $TMPDIR/root
 
     # For rockpro64 device
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
 
     #Clear first 8mb
-        sudo dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
+        dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
 	
     #partition with a single root partition
-        sudo parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        sudo parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
-        sudo mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
-        sudo chmod 777 -R $TMPDIR/root
-        sudo mount ${SDCARD}1 $TMPDIR/root
+        chmod 777 -R $TMPDIR/root
+        mount ${SDCARD}1 $TMPDIR/root
     fi
 }
 
@@ -271,48 +274,48 @@ cleanup () {
    # For Raspberry Pi devices
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
        #copy rootfs contents over to the FS
-        sudo mv $TMPDIR/root/boot/* $TMPDIR/boot
+        mv $TMPDIR/root/boot/* $TMPDIR/boot
         
         #clean up
-        sudo umount $TMPDIR/root
-        sudo umount $TMPDIR/boot
-        sudo rm -r $TMPDIR/root $TMPDIR/boot
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        umount $TMPDIR/root
+        umount $TMPDIR/boot
+        rm -r $TMPDIR/root $TMPDIR/boot
+        partprobe $SDCARD 1> /dev/null 2>&1
         
 # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
     #flash bootloader
         cd $TMPDIR/root/boot/
-        sudo ./sd_fusing.sh $SDCARD 1> /dev/null 2>&1
+        ./sd_fusing.sh $SDCARD 1> /dev/null 2>&1
         cd ~
 
     #clean up
-        sudo umount $TMPDIR/root
-        sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        umount $TMPDIR/root
+        rm -r $TMPDIR/root
+        partprobe $SDCARD 1> /dev/null 2>&1
         
     # For pinebook device
     elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
     #flash bootloader
-        sudo dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1 1> /dev/null 2>&1
+        dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1 1> /dev/null 2>&1
         
     #clean up
-        sudo umount $TMPDIR/root
-        sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        umount $TMPDIR/root
+        rm -r $TMPDIR/root
+        partprobe $SDCARD 1> /dev/null 2>&1
         
         
     # For rockpro64 device
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
     #flash bootloader
-        sudo dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
-        sudo dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
-        sudo dd if=$TMPDIR/root/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/root/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
         
     #clean up
-        sudo umount $TMPDIR/root
-        sudo rm -r $TMPDIR/root
-        sudo partprobe $SDCARD 1> /dev/null 2>&1
+        umount $TMPDIR/root
+        rm -r $TMPDIR/root
+        partprobe $SDCARD 1> /dev/null 2>&1
         
 fi
 }
