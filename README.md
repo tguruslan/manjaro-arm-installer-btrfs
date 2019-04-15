@@ -20,7 +20,7 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 ## Installing:
 To use this script, please make sure that the following is correct:
 
-* an SD/eMMC card with at least 8 GB storage is plugged in.
+* an **empty** SD/eMMC card with at least 8 GB storage is plugged in.
 * that your user account has `sudo` rights.
 
 ## Known Issues:
