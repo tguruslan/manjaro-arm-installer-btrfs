@@ -14,6 +14,8 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * parted
 * libarchive
 * binfmt-qemu-static
+* mkpasswd
+* gawk
 
 ## Installing:
 To use this script, please make sure that the following is correct:
@@ -29,7 +31,8 @@ To use this script, simple run it as normal user after you make it executable:
 
 ```
 chmod +x manjaro-arm-installer
-bash manjaro-arm-installer
+sudo -s
+clear && bash manjaro-arm-installer
 ```
 
 ## Other notes:
