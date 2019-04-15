@@ -213,6 +213,10 @@ prepare_card () {
     msg "Getting $SDCARD ready for $DEVICE..."
     # For Raspberry Pi devices
     if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
+        # umount SD card
+        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
+
         #partition with boot and root
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
@@ -232,6 +236,9 @@ prepare_card () {
 
     # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
+        # umount SD card
+        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+
         #Clear first 8mb
         dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
 	
@@ -247,7 +254,9 @@ prepare_card () {
         mount ${SDCARD}${SDDEV}1 $TMPDIR/root
 
     # For pine devices
-   elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
+    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
+        # umount SD card
+        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
 
     #Clear first 8mb
         dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
@@ -265,6 +274,8 @@ prepare_card () {
 
     # For rockpro64 device
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
+        # umount SD card
+        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
 
     #Clear first 8mb
         dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
