@@ -12,12 +12,18 @@ USER=""
 PASSWORD=""
 ROOTPASSWORD=""
 SDCARD=""
+SDTYP=""
+SDDEV=""
 TIMEZONE=""
 LOCALE=""
 
 # check if root
-if [ "$EUID" -ne 0 ]
-  then echo "This script requires root permissions to run. Please run as root or with sudo!"
+if [ "$EUID" -ne 0 ]; then
+    echo "*******************************************************************************************"
+    echo "*                                                                                         *"
+    echo "*     This script requires root permissions to run. Please run as root or with sudo!      *"
+    echo "*                                                                                         *"
+    echo "*******************************************************************************************"
   exit
 fi
 
@@ -39,6 +45,12 @@ if [ ! -f /usr/bin/git ]; then
     exit 1
     elif [ ! -f /usr/bin/bsdtar ]; then
     echo "bsdtar command is missing! Please install libarchive!"
+    exit 1
+    elif [ ! -f /usr/bin/mkpasswd ]; then
+    echo "mkpasswd command is missing! Please install mkpasswd!"
+    exit 1
+    elif [ ! -f /usr/bin/awk ]; then
+    echo "awk command is missing! Please install gawk!"
     exit 1
 fi
 
@@ -103,6 +115,7 @@ create_install() {
     fi
 
     msg "Creating install for $DEVICE..."
+    msg "Used device is ${SDCARD}${SDDEV}x"
     
     # fetch and extract rootfs
     info "Downloading latest $ARCH rootfs..."
@@ -131,18 +144,18 @@ create_install() {
     info "Setting up users..."
     #setup users
     echo "$USER" > $TMPDIR/user
-    echo "$PASSWORD" >> $TMPDIR/password
-    echo "$PASSWORD" >> $TMPDIR/password
-    echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
-    echo "$ROOTPASSWORD" >> $TMPDIR/rootpassword
-    $NSPAWN $TMPDIR/root passwd root < $TMPDIR/rootpassword 1> /dev/null 2>&1
-    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
-    $NSPAWN $TMPDIR/root passwd $(cat $TMPDIR/user) < $TMPDIR/password 1> /dev/null 2>&1
+    echo "$PASSWORD" > $TMPDIR/password
+    echo "$ROOTPASSWORD" > $TMPDIR/rootpassword
 
-    
+    info "setting password for root ..."
+    $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(mkpasswd --hash=SHA-512 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
+
+    info "Adding user..."
+    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+
     info "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
-        echo "No user services for $EDITION edition"
+        msg "No user services for $EDITION edition"
     else
         $NSPAWN $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
     fi
@@ -208,14 +221,14 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}p1" 1> /dev/null 2>&1
-        mkfs.ext4 "${SDCARD}p2" 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}1" 1> /dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}2" 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        mount ${SDCARD}1 $TMPDIR/boot
-        mount ${SDCARD}2 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}2 $TMPDIR/root
 
     # For Odroid devices
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
@@ -226,12 +239,12 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
         chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}1 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
 
     # For pine devices
    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
@@ -243,12 +256,12 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
         chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}1 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
 
     # For rockpro64 device
     elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
@@ -260,12 +273,12 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}p1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
         chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}1 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
     fi
 }
 
@@ -367,7 +380,7 @@ fi
 if [ ! -z "$USER" ]
 then
 PASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
-	--passwordbox "Enter Password for $USER:" 8 50 \
+	--insecure --passwordbox "Enter Password for $USER:" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 
@@ -380,7 +393,7 @@ fi
 if [ ! -z "$PASSWORD" ]
 then
 ROOTPASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
-	--passwordbox "Enter Root Password:" 8 50 \
+	--insecure --passwordbox "Enter Root Password:" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 
@@ -407,9 +420,18 @@ SDCARD=$(dialog --title "Manjaro ARM Installer" \
 
 # add /dev/ to the selected option above
 SDCARD=/dev/$SDCARD
+SDTYP=${SDCARD:5:2}
 else 
 	clear
 	exit 1
+	fi
+
+if [[ "$SDTYP" = "sd" ]]
+then
+    SDDEV=""
+elif [[ "$SDTYP" = "mm" ]]
+then
+    SDDEV="p"
 fi
 
 
