@@ -351,7 +351,7 @@ fi
 
 # Using Dialog to ask for user input for variables
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
-        --menu "Choose a device:" 20 70 10 \
+        --menu "Choose a device:" 20 75 10 \
 		"pinebook"  "Pinebook" \
 		"rock64"    "ROCK64" \
 		"rockpro64" "ROCKPro64" \
@@ -368,7 +368,7 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
 if [ ! -z "$DEVICE" ]
 then
 EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
-	--menu "Choose an edition:" 20 70 10 \
+	--menu "Choose an edition:" 20 75 10 \
 	"minimal" "Minimal Edition            (only CLI)" \
 	"kde"     "Full KDE/Plasma Desktop    (Heavy)" \
 	"lxqt"    "Full LXQT Desktop and apps (lightweight)" \
@@ -528,7 +528,7 @@ dialog --clear --title "Manjaro ARM Installer" \
     Timezone = $TIMEZONE
     Locale = $LOCALE
     Keyboard layout = $KEYMAP
-    Hostname = $HOSTNAME" 20 50 \
+    Hostname = $HOSTNAME" 20 70 \
     3>&1 1>&2 2>&3 3>&-
 else
     clear
