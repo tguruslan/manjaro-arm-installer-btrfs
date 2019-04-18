@@ -14,7 +14,7 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * parted
 * libarchive
 * binfmt-qemu-static
-* expect (for mkpasswd)
+* mkpasswd
 * gawk
 
 ## Installing:
