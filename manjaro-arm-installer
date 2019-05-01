@@ -374,9 +374,10 @@ then
 EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
 	--menu "Choose an edition:" 20 75 10 \
 	"minimal" "Minimal Edition            (only CLI)" \
-	"kde"     "Full KDE/Plasma Desktop    (Heavy)" \
+	"kde"     "Full KDE/Plasma Desktop    (full featured)" \
 	"lxqt"    "Full LXQT Desktop and apps (lightweight)" \
 	"i3"      "Mininal i3 WM with apps    (very light)" \
+	"cubocore" "QT based Desktop (lightweight" \
 	"mate"    "Full MATE desktop and apps (lightweight, unmaintained)" \
 	3>&1 1>&2 2>&3 3>&-) 
 
