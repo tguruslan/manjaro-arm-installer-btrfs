@@ -14,6 +14,8 @@ DEVICE=""
 EDITION=""
 USER=""
 PASSWORD=""
+CONFIRMPASSWORD=""
+CONFIRMROOTPASSWORD=""
 ROOTPASSWORD=""
 SDCARD=""
 SDTYP=""
@@ -411,9 +413,24 @@ else
 	exit 1
 fi
 
-
-
 if [ ! -z "$PASSWORD" ]
+then
+CONFIRMPASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
+	--insecure --passwordbox "Confirm Password for $USER:" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [[ "$PASSWORD" != "$CONFIRMPASSWORD" ]]; then
+    clear
+    msg "User passwords do not match! Please restart the installer and try again."
+    exit 1
+fi
+
+if [ ! -z "$CONFIRMPASSWORD" ]
 then
 ROOTPASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
 	--insecure --passwordbox "Enter Root Password:" 8 50 \
@@ -424,10 +441,24 @@ else
 	exit 1
 fi
 
-
-
-
 if [ ! -z "$ROOTPASSWORD" ]
+then
+CONFIRMROOTPASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
+	--insecure --passwordbox "Confirm Root Password:" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [[ "$ROOTPASSWORD" != "$CONFIRMROOTPASSWORD" ]]; then
+    clear
+    msg "Root passwords do not match! Please restart the installer and try again."
+    exit 1
+fi
+
+if [ ! -z "$CONFIRMROOTPASSWORD" ]
 then
 
 # simple command to put the results of lsblk (just the names of the devices) into an array and make that array populate the options	
