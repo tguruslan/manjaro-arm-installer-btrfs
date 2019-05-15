@@ -35,6 +35,21 @@ sudo -s
 clear && bash manjaro-arm-installer
 ```
 
+## Supported Devices:
+* Pinebook
+* Raspberry Pi 3B
+* Rock64 (rev2)
+* RockPro64 (new)
+* Odroid C2
+* Odroid N2 (new)
+* Pine64-LTS / Sopine
+
+## Supported Editions / Desktops:
+* Minimal (no xorg, no apps)
+* KDE/Plasma (full plasma desktop with apps)
+* LXQT (full LXQT desktop with some qt apps)
+* CuboCore (base plasma desktop with CoreApps)
+
 ## Other notes:
 This script is available as a **Arch** (*pkg.tar.xz*) package in my **Manjaro Strit** repo, called `manjaro-arm-installer`.
 
