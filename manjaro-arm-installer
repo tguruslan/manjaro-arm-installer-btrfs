@@ -198,11 +198,12 @@ create_install() {
         echo "dtparam=audio=on" | tee --append $TMPDIR/root/boot/config.txt 1> /dev/null 2>&1
         echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
-        echo "/dev/mmcblk0p1  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
         $NSPAWN $TMPDIR/root systemctl disable dhcpcd.service 1> /dev/null 2>&1
+        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
     else
@@ -243,8 +244,8 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}${SDDEV}1" 1> /dev/null 2>&1
-        mkfs.ext4 "${SDCARD}${SDDEV}2" 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT 1> /dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}2" -L ROOT 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -265,7 +266,7 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
         
         #Mount SD card
         mkdir -p $TMPDIR/root
@@ -288,8 +289,8 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $LDEV mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $LDEV 1> /dev/null 2>&1
-        mkfs.vfat "${LDEV}p1" 1> /dev/null 2>&1
-        mkfs.ext4 "${LDEV}p2" 1> /dev/null 2>&1
+        mkfs.vfat "${LDEV}p1" -n BOOT 1> /dev/null 2>&1
+        mkfs.ext4 "${LDEV}p2" -L ROOT 1> /dev/null 2>&1
         
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
@@ -310,7 +311,7 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
@@ -330,7 +331,7 @@ prepare_card () {
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
         
         # Mount SD card
         mkdir -p $TMPDIR/root
