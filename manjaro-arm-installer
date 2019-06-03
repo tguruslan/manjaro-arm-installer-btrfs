@@ -416,9 +416,6 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
 		"oc2"       "Odroid C2" \
 		"on2"       "Odroid N2" \
 		"rpi3"      "Raspberry Pi 3" \
-		"oc1"       "Odroid C1/C1+    (unmaintained)" \
-		"xu4"       "Odroid XU4       (unmaintained)" \
-		"rpi2"      "Raspberry Pi 2   (unmaintained)" \
 		3>&1 1>&2 2>&3 3>&-)
 
 
