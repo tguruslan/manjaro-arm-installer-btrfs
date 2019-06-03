@@ -51,6 +51,8 @@ clear && bash manjaro-arm-installer
 * CuboCore (base plasma desktop with CoreApps)
 
 ## Other notes:
-This script is available as a **Arch** (*pkg.tar.xz*) package in my **Manjaro Strit** repo, called `manjaro-arm-installer`.
+This script is available in the **Manjaro** repository and can be installed with `sudo pacman -S manjaro-arm-installer`.
+
+This script is also available as an **Arch** (*pkg.tar.xz*) package in my **Manjaro Strit** repo, called `manjaro-arm-installer`.
 
 This script **should** be distro-agnostic, which means you can install *Manjaro ARM* from **any** distro, as long as the dependencies are met.
