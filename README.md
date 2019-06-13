@@ -42,6 +42,7 @@ clear && bash manjaro-arm-installer
 * RockPro64 (new)
 * Odroid C2
 * Odroid N2 (new)
+* Rock Pi 4 (new)
 * Pine64-LTS / Sopine
 
 ## Supported Editions / Desktops:

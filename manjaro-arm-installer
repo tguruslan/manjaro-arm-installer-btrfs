@@ -168,6 +168,7 @@ create_install() {
 
     info "Adding user..."
     $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
 
     info "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
@@ -183,13 +184,15 @@ create_install() {
     rm -f $TMPDIR/root/etc/ca-certificates/extracted/tls-ca-bundle.pem
     cp -a /etc/ssl/certs/ca-certificates.crt $TMPDIR/root/etc/ssl/certs/
     cp -a /etc/ca-certificates/extracted/tls-ca-bundle.pem $TMPDIR/root/etc/ca-certificates/extracted/
-    $NSPAWN $TMPDIR/root ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root timedatectl set-timezone $TIMEZONE 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root timedatectl set-ntp true 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
-    echo "LANG=$LOCALE" | tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
-    $NSPAWN $TMPDIR/root locale-gen
-    echo "KEYMAP=$KEYMAP" | tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
-    $NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
-    echo "$HOSTNAME" | tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root locale-gen 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root localectl set-locale $LOCALE 1> /dev/null 2>&1
+    if [[ "$SYSTEM" != "Pinebook" ]]; then
+    $NSPAWN $TMPDIR/root localectl set-keymap $KEYMAP 1> /dev/null 2>&1
+    fi
+    $NSPAWN $TMPDIR/root hostnamectl set-hostname $HOSTNAME 1> /dev/null 2>&1
     chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
     if [[ "$EDITION" != "minimal" && "$EDITION" != "server" ]]; then
     chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
@@ -321,7 +324,7 @@ prepare_card () {
         mount ${SDCARD}${SDDEV}1 $TMPDIR/root
 
     # For rockpro64 device
-    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]]; then
+    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -417,6 +420,7 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
 		"sopine"    "SOPINE / PINE A64-LTS" \
 		"oc2"       "Odroid C2" \
 		"on2"       "Odroid N2" \
+		"rockpi4"   "Rock Pi 4" \
 		"rpi3"      "Raspberry Pi 3" \
 		3>&1 1>&2 2>&3 3>&-)
 
@@ -448,10 +452,19 @@ else
 	exit 1
 fi
 
+if [ ! -z "$USER" ]
+then
+FULLNAME=$(dialog --clear --title "Finish Manjaro ARM Install" \
+    --inputbox "Enter Full Name for $USER:" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else
+    clear
+    exit 1
+fi
 
 
-
-if [ ! -z "$USER" ]; then
+if [ ! -z "$FULLNAME" ]; then
 	PASSWORD=$(dialog --clear --title "Manjaro ARM Installer" \
 	--insecure --passwordbox "Enter Password for $USER:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
