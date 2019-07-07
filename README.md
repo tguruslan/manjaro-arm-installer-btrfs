@@ -49,6 +49,7 @@ clear && bash manjaro-arm-installer
 * Minimal (no xorg, no apps)
 * KDE/Plasma (full plasma desktop with apps)
 * LXQT (full LXQT desktop with some qt apps)
+* Mate (full mate desktop with apps)
 * CuboCore (base plasma desktop with CoreApps)
 
 ## Other notes:

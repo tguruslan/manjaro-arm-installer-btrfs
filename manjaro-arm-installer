@@ -115,12 +115,6 @@ getarmprofiles () {
 }
 
 create_install() {
- if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        ARCH='armv7h'
-    else
-        ARCH='aarch64'
-    fi
-
     msg "Creating install for $DEVICE..."
     msg "Used device is ${SDCARD}${SDDEV}x"
     
@@ -142,10 +136,10 @@ create_install() {
         if [[ "$DEVICE" = "on2" ]]; then
     if [[ "$EDITION" = "kde" ]] || [[ "$EDITION" = "cubocore" ]]; then
     $NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm --noconfirm
-    $NSPAWN $TMPDIR/root pacman -S sddm-n2 sddm-kcm --noconfirm
+    $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm --noconfirm
     elif [[ "$EDITION" = "lxqt" ]]; then
     $NSPAWN $TMPDIR/root pacman -R sddm sddm-qt-manjaro-theme --noconfirm
-    $NSPAWN $TMPDIR/root pacman -S sddm-n2 sddm-qt-manjaro-theme --noconfirm
+    $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-qt-manjaro-theme --noconfirm
     fi
     fi
     
@@ -153,6 +147,9 @@ create_install() {
     # Enable services
     $NSPAWN $TMPDIR/root systemctl enable getty.target haveged.service 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root systemctl enable $SRV_EDITION 1> /dev/null 2>&1
+    if [ -f $TMPDIR/root/usr/bin/xdg-user-dirs-update ]; then
+    $NSPAWN $TMPDIR/root systemctl --global enable xdg-user-dirs-update.service 1> /dev/null 2>&1
+    fi
 
     info "Applying overlay for $EDITION..."
     cp -ap $TMPDIR/arm-profiles/overlays/$EDITION/* $TMPDIR/root/
@@ -199,12 +196,12 @@ create_install() {
     fi
     
     info "Doing device specific setups for $DEVICE..."
-    if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
+    if [[ "$DEVICE" = "rpi3" ]]; then
         echo "dtparam=audio=on" | tee --append $TMPDIR/root/boot/config.txt 1> /dev/null 2>&1
         echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]]; then
+    elif [[ "$DEVICE" = "oc2" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
         $NSPAWN $TMPDIR/root systemctl disable dhcpcd.service 1> /dev/null 2>&1
@@ -216,11 +213,7 @@ create_install() {
     fi
     
     info "Cleaning install for unwanted files..."
-       if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-        rm $TMPDIR/root/usr/bin/qemu-arm-static
-    else
-        rm $TMPDIR/root/usr/bin/qemu-aarch64-static
-    fi
+    rm $TMPDIR/root/usr/bin/qemu-aarch64-static
     rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
     rm -rf $TMPDIR/root/var/log/*
     rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
@@ -236,7 +229,7 @@ create_install() {
 prepare_card () {
     msg "Getting $SDCARD ready for $DEVICE..."
     # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
+    if [[ "$DEVICE" = "rpi3" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -259,7 +252,7 @@ prepare_card () {
         mount ${SDCARD}${SDDEV}2 $TMPDIR/root
 
     # For Odroid devices
-    elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
+    elif [[ "$DEVICE" = "oc2" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -348,7 +341,7 @@ prepare_card () {
 cleanup () {
     msg "Writing bootloader and cleaning up after install..."
    # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "rpi3" ]]; then
+    if [[ "$DEVICE" = "rpi3" ]]; then
        #move boot files
         mv $TMPDIR/root/boot/* $TMPDIR/boot
         
@@ -359,7 +352,7 @@ cleanup () {
         partprobe $SDCARD 1> /dev/null 2>&1
         
     # For Odroid devices
-    elif [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "oc2" ]] || [[ "$DEVICE" = "xu4" ]]; then
+    elif [[ "$DEVICE" = "oc2" ]]; then
     #flash bootloader
         cd $TMPDIR/root/boot/
         ./sd_fusing.sh $SDCARD 1> /dev/null 2>&1
@@ -431,10 +424,10 @@ if [ ! -z "$DEVICE" ]; then
 		--menu "Choose an edition:" 20 75 10 \
 		"minimal"   "Minimal Edition            (only CLI)" \
 		"kde"       "Full KDE/Plasma Desktop    (full featured)" \
+		"mate"      "Full MATE desktop and apps (lightweight)" \
 		"lxqt"      "Full LXQT Desktop and apps (lightweight)" \
 		"i3"        "Mininal i3 WM with apps    (very light)" \
 		"cubocore"  "QT based Desktop           (lightweight)" \
-		"mate"      "Full MATE desktop and apps (lightweight, unmaintained)" \
 		3>&1 1>&2 2>&3 3>&-) 
 
 else 
@@ -632,12 +625,6 @@ case $response in
    255) clear; msg "Installation aborted..."; exit 1;;
 esac
 
-
-if [[ "$DEVICE" = "oc1" ]] || [[ "$DEVICE" = "rpi2" ]] || [[ "$DEVICE" = "xu4" ]]; then
-    ARCH='armv7h'
-else
-    ARCH='aarch64'
-fi
 
 # get the profiles
 getarmprofiles
