@@ -122,7 +122,7 @@ create_install() {
     # fetch and extract rootfs
     info "Downloading latest $ARCH rootfs..."
     cd $TMPDIR
-    wget -q --show-progress --progress=bar:force:noscroll https://www.strits.dk/files/Manjaro-ARM-$ARCH-latest.tar.gz
+    wget -q --show-progress --progress=bar:force:noscroll https://osdn.net/projects/manjaro-arm/storage/.rootfs/Manjaro-ARM-$ARCH-latest.tar.gz
     
     info "Extracting $ARCH rootfs..."
     bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
