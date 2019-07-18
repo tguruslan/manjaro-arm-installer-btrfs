@@ -13,6 +13,7 @@ NSPAWN='systemd-nspawn -q --resolv-conf=copy-host --timezone=off -D'
 DEVICE=""
 EDITION=""
 USER=""
+FULLNAME=""
 PASSWORD=""
 CONFIRMPASSWORD=""
 CONFIRMROOTPASSWORD=""
@@ -133,7 +134,7 @@ create_install() {
     info "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base $PKG_DEVICE $PKG_EDITION --noconfirm
-        if [[ "$DEVICE" = "on2" ]]; then
+        if [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "rpi4" ]] || [[ "$DEVICE" = "vim3" ]]; then
     if [[ "$EDITION" = "kde" ]] || [[ "$EDITION" = "cubocore" ]]; then
     $NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm --noconfirm
     $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm --noconfirm
@@ -201,10 +202,18 @@ create_install() {
         echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+    elif [[ "$DEVICE" = "rpi4" ]]; then
+    echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
+        echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
+        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+        # fix wifi
+        sed -i s/'boardflags3=0x48200100'/'boardflags3=0x44200100'/ $TMPDIR/root/usr/lib/firmware/updates/brcm/brcmfmac43455-sdio.txt 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "oc2" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
         $NSPAWN $TMPDIR/root systemctl disable dhcpcd.service 1> /dev/null 2>&1
+        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+    elif [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
@@ -229,7 +238,7 @@ create_install() {
 prepare_card () {
     msg "Getting $SDCARD ready for $DEVICE..."
     # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi3" ]]; then
+    if [[ "$DEVICE" = "rpi3" ]] || [[ "$DEVICE" = "rpi4" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -277,24 +286,51 @@ prepare_card () {
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
 
         #Clear first 8 mb
-        dd if=/dev/zero of=${LDEV} bs=1M count=8 1> /dev/null 2>&1
+        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
         
     #partition with 2 partitions
-        parted -s $LDEV mklabel msdos 1> /dev/null 2>&1
-        parted -s $LDEV mkpart primary fat32 0% 256M 1> /dev/null 2>&1
-        START=`cat /sys/block/$DEV/${DEV}p1/start`
-        SIZE=`cat /sys/block/$DEV/${DEV}p1/size`
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary fat32 0% 256M 1> /dev/null 2>&1
+        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}p1/start`
+        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}p1/size`
         END_SECTOR=$(expr $START + $SIZE)
-        parted -s $LDEV mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
-        partprobe $LDEV 1> /dev/null 2>&1
-        mkfs.vfat "${LDEV}p1" -n BOOT 1> /dev/null 2>&1
-        mkfs.ext4 "${LDEV}p2" -L ROOT 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}p1" -n BOOT 1> /dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}p2" -L ROOT 1> /dev/null 2>&1
         
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        mount ${LDEV}p1 $TMPDIR/boot
-        mount ${LDEV}p2 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}p1 $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}p2 $TMPDIR/root
+        
+    # For Khadas devices
+        elif [[ "$DEVICE" = "vim3" ]]; then
+        # umount SD card
+        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
+        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
+        
+        #Clear first 8 mb
+        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
+        
+    #partition with 2 partitions
+        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary fat32 32M 256M 1> /dev/null 2>&1
+        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}p1/start`
+        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}p1/size`
+        END_SECTOR=$(expr $START + $SIZE)
+        parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}p1" -n BOOT 1>/dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}p2" -L ROOT 1> /dev/null 2>&1
+        
+    #copy rootfs contents over to the FS
+        mkdir -p $TMPDIR/root
+        mkdir -p $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}p1 $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}p2 $TMPDIR/root
+        
 
     # For pine devices
     elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
@@ -341,7 +377,7 @@ prepare_card () {
 cleanup () {
     msg "Writing bootloader and cleaning up after install..."
    # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi3" ]]; then
+    if [[ "$DEVICE" = "rpi3" ]] || [[ "$DEVICE" = "rpi4" ]]; then
        #move boot files
         mv $TMPDIR/root/boot/* $TMPDIR/boot
         
@@ -375,7 +411,20 @@ cleanup () {
         umount $TMPDIR/boot
         losetup -d $LDEV 1> /dev/null 2>&1
         rm -r $TMPDIR/root $TMPDIR/boot
-        partprobe $LDEV 1> /dev/null 2>&1
+        partprobe $SDCARD 1> /dev/null 2>&1
+        
+    # For Khadas devices
+    elif [[ "$DEVICE" = "vim3" ]]; then
+    #flash bootloader
+        dd if=$TMPDIR/boot/u-boot.bin.sd.bin of=$SDCARD bs=1 count=444 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/u-boot.bin.sd.bin of=$SDCARD bs=512 skip=1 seek=1 1> /dev/null 2>&1
+        
+    #clean up
+        umount $TMPDIR/root
+        umount $TMPDIR/boot
+        losetup -d $LDEV 1> /dev/null 2>&1
+        rm -r $TMPDIR/root $TMPDIR/boot
+        partprobe $SDCARD 1> /dev/null 2>&1
         
     # For pinebook device
     elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]]; then
@@ -407,12 +456,14 @@ fi
 # Using Dialog to ask for user input for variables
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 75 10 \
+        "rpi4"      "Rapsberry Pi 4" \
 		"pinebook"  "Pinebook" \
 		"rock64"    "ROCK64" \
 		"rockpro64" "ROCKPro64" \
 		"sopine"    "SOPINE / PINE A64-LTS" \
 		"oc2"       "Odroid C2" \
 		"on2"       "Odroid N2" \
+		"vim3"      "Khadas Vim 3" \
 		"rockpi4"   "Rock Pi 4" \
 		"rpi3"      "Raspberry Pi 3" \
 		3>&1 1>&2 2>&3 3>&-)
