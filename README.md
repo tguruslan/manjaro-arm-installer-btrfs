@@ -38,11 +38,13 @@ clear && bash manjaro-arm-installer
 ## Supported Devices:
 * Pinebook
 * Raspberry Pi 3B
+* raspberry Pi 4 (new)
 * Rock64 (rev2)
-* RockPro64 (new)
+* RockPro64
 * Odroid C2
-* Odroid N2 (new)
-* Rock Pi 4 (new)
+* Odroid N2
+* Khadas Vim 3 (new)
+* Rock Pi 4
 * Pine64-LTS / Sopine
 
 ## Supported Editions / Desktops:
