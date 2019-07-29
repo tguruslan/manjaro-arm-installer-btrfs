@@ -203,8 +203,6 @@ create_install() {
         echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "rpi4" ]]; then
-    echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
-        echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
         $NSPAWN $TMPDIR/root systemctl enable attach-bluetooth.service 1> /dev/null 2>&1
         # fix wifi
@@ -477,6 +475,7 @@ if [ ! -z "$DEVICE" ]; then
 		--menu "Choose an edition:" 20 75 10 \
 		"minimal"   "Minimal Edition            (only CLI)" \
 		"kde"       "Full KDE/Plasma Desktop    (full featured)" \
+		"xfce"      "Full XFCE desktop and apps (full featured)" \
 		"mate"      "Full MATE desktop and apps (lightweight)" \
 		"lxqt"      "Full LXQT Desktop and apps (lightweight)" \
 		"i3"        "Mininal i3 WM with apps    (very light)" \
