@@ -206,6 +206,7 @@ create_install() {
     echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root systemctl enable attach-bluetooth.service 1> /dev/null 2>&1
         # fix wifi
         sed -i s/'boardflags3=0x48200100'/'boardflags3=0x44200100'/ $TMPDIR/root/usr/lib/firmware/updates/brcm/brcmfmac43455-sdio.txt 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "oc2" ]]; then
