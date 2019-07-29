@@ -165,7 +165,7 @@ create_install() {
     $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(mkpasswd --hash=SHA-512 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
 
     info "Adding user..."
-    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,lp,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
 
     info "Enabling user services..."
@@ -215,6 +215,7 @@ create_install() {
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
     else
@@ -489,7 +490,8 @@ fi
 
 if [ ! -z "$EDITION" ]; then
 	USER=$(dialog --clear --title "Manjaro ARM Installer" \
-	--inputbox "Enter username:" 8 50 \
+	--inputbox "Enter username:
+(usernames most be all lowercase)" 8 50 \
 	3>&1 1>&2 2>&3 3>&-)
 else 
 	clear
