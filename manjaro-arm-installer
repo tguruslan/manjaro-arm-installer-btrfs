@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.1
+#       Version 1.2.2
 # *****************************
 
 # Set globals
@@ -13,6 +13,7 @@ NSPAWN='systemd-nspawn -q --resolv-conf=copy-host --timezone=off -D'
 DEVICE=""
 EDITION=""
 USER=""
+USERGROUPS=""
 FULLNAME=""
 PASSWORD=""
 CONFIRMPASSWORD=""
@@ -166,6 +167,7 @@ create_install() {
 
     info "Adding user..."
     $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,lp,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root usermod -aG $USERGROUPS $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
 
     info "Enabling user services..."
@@ -500,7 +502,19 @@ fi
 
 if [ ! -z "$USER" ]
 then
-FULLNAME=$(dialog --clear --title "Finish Manjaro ARM Install" \
+USERGROUPS=$(dialog --clear --title "Manjaro ARM Installer" \
+    --inputbox "Enter additional groups for $USER in a comma seperated list: (empty if none)
+(default groups: wheel,sys,storage,lp,network,users,power)" 8 50 \
+        3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [ ! -z "$USER" ]
+then
+FULLNAME=$(dialog --clear --title "Manjaro ARM Installer" \
     --inputbox "Enter Full Name for $USER:" 8 50 \
         3>&1 1>&2 2>&3 3>&- \
 	)
@@ -658,6 +672,7 @@ if [ ! -z "$HOSTNAME" ]; then
 	dialog --clear --title "Manjaro ARM Installer" \
     --yesno "Is the below information correct:
     Username = $USER
+    Additional usergroups = $USERGROUPS
     Password for $USER = $PASSWORD
     Password for root = $ROOTPASSWORD
     SD Card = $SDCARD
