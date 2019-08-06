@@ -298,14 +298,14 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}${SDDEV}p1" -n BOOT 1> /dev/null 2>&1
-        mkfs.ext4 "${SDCARD}${SDDEV}p2" -L ROOT 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT 1> /dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}2" -L ROOT 1> /dev/null 2>&1
         
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}p1 $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}p2 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}2 $TMPDIR/root
         
     # For Khadas devices
         elif [[ "$DEVICE" = "vim3" ]]; then
@@ -324,14 +324,14 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}${SDDEV}p1" -n BOOT 1>/dev/null 2>&1
-        mkfs.ext4 "${SDCARD}${SDDEV}p2" -L ROOT 1> /dev/null 2>&1
+        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT 1>/dev/null 2>&1
+        mkfs.ext4 "${SDCARD}${SDDEV}2" -L ROOT 1> /dev/null 2>&1
         
     #copy rootfs contents over to the FS
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}p1 $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}p2 $TMPDIR/root
+        mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
+        mount ${SDCARD}${SDDEV}2 $TMPDIR/root
         
 
     # For pine devices
