@@ -495,6 +495,11 @@ if [ ! -z "$EDITION" ]; then
 	--inputbox "Enter username:
 (usernames most be all lowercase)" 8 50 \
 	3>&1 1>&2 2>&3 3>&-)
+    if [[ "$USER" =~ [A-Z] ]] || [[ "$USER" == *['!'@#\$%^\&*()_+]* ]]; then
+    clear
+    msg "Configuration aborted! Username contained invalid characters."
+    exit 1
+    fi
 else 
 	clear
 	exit 1
