@@ -46,10 +46,12 @@ clear && bash manjaro-arm-installer
 * Khadas Vim 3 (new)
 * Rock Pi 4
 * Pine64-LTS / Sopine
+* Pine64+
 
 ## Supported Editions / Desktops:
 * Minimal (no xorg, no apps)
 * KDE/Plasma (full plasma desktop with apps)
+* XFCE (full XFCE desktop with apps)
 * LXQT (full LXQT desktop with some qt apps)
 * Mate (full mate desktop with apps)
 * CuboCore (base plasma desktop with CoreApps)
