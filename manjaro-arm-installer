@@ -217,7 +217,7 @@ create_install() {
     elif [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
         $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine"]] || [[ "$DEVICE" = "pine64" ]]; then
+    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
     else
         echo "No device specific setting needed for $DEVICE"
