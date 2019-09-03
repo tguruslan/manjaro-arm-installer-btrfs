@@ -417,11 +417,7 @@ cleanup () {
         
     # For Khadas devices
     elif [[ "$DEVICE" = "vim3" ]]; then
-    #flash bootloader
-        dd if=$TMPDIR/boot/u-boot.bin.sd.bin of=$SDCARD bs=1 count=444 1> /dev/null 2>&1
-        dd if=$TMPDIR/boot/u-boot.bin.sd.bin of=$SDCARD bs=512 skip=1 seek=1 1> /dev/null 2>&1
-        
-    #clean up
+   #clean up
         umount $TMPDIR/root
         umount $TMPDIR/boot
         losetup -d $LDEV 1> /dev/null 2>&1
