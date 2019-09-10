@@ -166,7 +166,7 @@ create_install() {
     $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(mkpasswd --hash=SHA-512 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
 
     info "Adding user..."
-    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,storage,lp,network,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root useradd -m -g users -G wheel,sys,input,video,storage,lp,network,users,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root usermod -aG $USERGROUPS $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
 
