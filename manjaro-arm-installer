@@ -9,6 +9,9 @@ TMPDIR=/var/tmp/manjaro-arm-installer
 ARCH='aarch64'
 NSPAWN='systemd-nspawn -q --resolv-conf=copy-host --timezone=off -D'
 
+# set colorscheme
+export DIALOGRC="./dialogrc_gui"
+
 # clearing variables
 DEVICE=""
 EDITION=""

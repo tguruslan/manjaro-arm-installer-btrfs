@@ -17,23 +17,23 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * debian-whois-mkpasswd
 * gawk
 
-## Installing:
+## Installing and using from gitlab:
 To use this script, please make sure that the following is correct:
 
 * an **empty** SD/eMMC card with at least 8 GB storage is plugged in.
 * that your user account has `sudo` rights.
 
-## Known Issues:
-* Because `dialog` is weird, the script needs to be run in `bash`.
-
-## Usage:
-To use this script, simple run it as normal user after you make it executable:
-
+Then use this to get it:
 ```
+git clone https://gitlab.manjaro.org/manjaro-arm/applications/manjaro-arm-installer
+cd manjaro-arm-installer
 chmod +x manjaro-arm-installer
 sudo -s
 clear && bash manjaro-arm-installer
 ```
+
+## Known Issues:
+* Because `dialog` is weird, the script needs to be run in `bash`.
 
 ## Supported Devices:
 * Pinebook
