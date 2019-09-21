@@ -138,7 +138,7 @@ create_install() {
     info "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base $PKG_DEVICE $PKG_EDITION --noconfirm
-        if [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "rpi4" ]] || [[ "$DEVICE" = "vim3" ]]; then
+        if [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "rpi4" ]] || [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim3" ]]; then
     if [[ "$EDITION" = "kde" ]] || [[ "$EDITION" = "cubocore" ]]; then
     $NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm matcha-dynamic-theme --noconfirm
     $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm matcha-dynamic-theme --noconfirm
@@ -217,7 +217,7 @@ create_install() {
     elif [[ "$DEVICE" = "on2" ]]; then
         $NSPAWN $TMPDIR/root systemctl disable dhcpcd.service 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "vim3" ]]; then
+    elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
         $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
@@ -311,7 +311,7 @@ prepare_card () {
         mount ${SDCARD}${SDDEV}2 $TMPDIR/root
         
     # For Khadas devices
-        elif [[ "$DEVICE" = "vim3" ]]; then
+        elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim3" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -419,7 +419,7 @@ cleanup () {
         partprobe $SDCARD 1> /dev/null 2>&1
         
     # For Khadas devices
-    elif [[ "$DEVICE" = "vim3" ]]; then
+    elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim3" ]]; then
    #clean up
         umount $TMPDIR/root
         umount $TMPDIR/boot
@@ -468,6 +468,7 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
 		"vim3"      "Khadas Vim 3" \
 		"rockpi4"   "Rock Pi 4" \
 		"rpi3"      "Raspberry Pi 3" \
+		"vim1"      "Khadas Vim 1" \
 		3>&1 1>&2 2>&3 3>&-)
 
 

@@ -39,7 +39,7 @@ clear && bash manjaro-arm-installer
 * Pinebook
 * Raspberry Pi 3B
 * raspberry Pi 4 (new)
-* Rock64 (rev2)
+* Rock64
 * RockPro64
 * Odroid C2
 * Odroid N2
@@ -47,6 +47,7 @@ clear && bash manjaro-arm-installer
 * Rock Pi 4
 * Pine64-LTS / Sopine
 * Pine64+
+* Khadas Vim 1 (new)
 
 ## Supported Editions / Desktops:
 * Minimal (no xorg, no apps)
