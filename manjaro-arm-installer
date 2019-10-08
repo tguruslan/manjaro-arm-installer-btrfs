@@ -477,7 +477,7 @@ if [ ! -z "$DEVICE" ]; then
 	EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
 		--menu "Choose an edition:" 20 75 10 \
 		"minimal"   "Minimal Edition            (only CLI)" \
-		"kde-plasma"       "Full KDE/Plasma Desktop    (full featured)" \
+		"kde-plasma""Full KDE/Plasma Desktop    (full featured)" \
 		"xfce"      "Full XFCE desktop and apps (full featured)" \
 		"mate"      "Full MATE desktop and apps (lightweight)" \
 		"lxqt"      "Full LXQT Desktop and apps (lightweight)" \
