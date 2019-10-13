@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.4
+#       Version 1.2.5
 # *****************************
 
 # Set globals
@@ -199,6 +199,8 @@ create_install() {
     chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
     if [[ "$EDITION" != "minimal" && "$EDITION" != "server" ]]; then
     chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
+    sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
+    $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
     fi
     
     info "Doing device specific setups for $DEVICE..."
@@ -477,7 +479,7 @@ if [ ! -z "$DEVICE" ]; then
 	EDITION=$(dialog --clear --title "Manjaro ARM Installer" \
 		--menu "Choose an edition:" 20 75 10 \
 		"minimal"   "Minimal Edition            (only CLI)" \
-		"kde-plasma""Full KDE/Plasma Desktop    (full featured)" \
+		"kde-plasma" "Full KDE/Plasma Desktop    (full featured)" \
 		"xfce"      "Full XFCE desktop and apps (full featured)" \
 		"mate"      "Full MATE desktop and apps (lightweight)" \
 		"lxqt"      "Full LXQT Desktop and apps (lightweight)" \
@@ -677,6 +679,8 @@ fi
 if [ ! -z "$HOSTNAME" ]; then
 	dialog --clear --title "Manjaro ARM Installer" \
     --yesno "Is the below information correct:
+    Device = $DEVICE
+    Edition = $EDITION
     Username = $USER
     Additional usergroups = $USERGROUPS
     Password for $USER = $PASSWORD
