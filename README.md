@@ -38,16 +38,17 @@ clear && bash manjaro-arm-installer
 ## Supported Devices:
 * Pinebook
 * Raspberry Pi 3B
-* raspberry Pi 4 (new)
+* raspberry Pi 4
 * Rock64
 * RockPro64
 * Odroid C2
 * Odroid N2
-* Khadas Vim 3 (new)
+* Khadas Vim 3
 * Rock Pi 4
 * Pine64-LTS / Sopine
 * Pine64+
-* Khadas Vim 1 (new)
+* Khadas Vim 1 (new and untested)
+* Khadas Vim 2 (new and untested)
 
 ## Supported Editions / Desktops:
 * Minimal (no xorg, no apps)
