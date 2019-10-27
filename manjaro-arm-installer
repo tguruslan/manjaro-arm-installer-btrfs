@@ -215,7 +215,6 @@ create_install() {
     elif [[ "$DEVICE" = "oc2" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
-        $NSPAWN $TMPDIR/root systemctl disable dhcpcd.service 1> /dev/null 2>&1
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
