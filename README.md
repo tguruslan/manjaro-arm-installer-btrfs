@@ -48,7 +48,6 @@ clear && bash manjaro-arm-installer
 * Pine64-LTS / Sopine
 * Pine64+
 * Khadas Vim 1 (new and untested)
-* Khadas Vim 2 (new and untested)
 
 ## Supported Editions / Desktops:
 * Minimal (no xorg, no apps)
