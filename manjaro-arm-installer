@@ -122,7 +122,7 @@ getarmprofiles () {
 
 create_install() {
     msg "Creating install for $DEVICE..."
-    info "Used device is ${SDCARD}${SDDEV}x"
+    info "Used device is ${SDCARD}${SDDEV}"
     
     # fetch and extract rootfs
     info "Downloading latest $ARCH rootfs..."
@@ -173,7 +173,7 @@ create_install() {
     echo "$PASSWORD" > $TMPDIR/password
     echo "$ROOTPASSWORD" > $TMPDIR/rootpassword
 
-    info "setting password for root ..."
+    info "Setting password for root ..."
     $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(mkpasswd --hash=SHA-512 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
 
     info "Adding user..."
@@ -196,10 +196,14 @@ create_install() {
     $NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
     echo "$HOSTNAME" | tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
 
-    chown -R root:root $TMPDIR/root/etc 1> /dev/null 2>&1
+    echo "Correcting permissions from overlay..."
+    chown -R root:root $TMPDIR/root/etc
     if [[ "$EDITION" != "minimal" && "$EDITION" != "server" ]]; then
-    chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d 1> /dev/null 2>&1
+        chown root:polkitd $TMPDIR/root/etc/polkit-1/rules.d
+    elif [[ "$EDITION" = "cubocore" ]]; then
+        cp $TMPDIR/root/usr/share/applications/corestuff.desktop $TMPDIR/root/etc/xdg/autostart/
     fi
+
     
     info "Doing device specific setups for $DEVICE..."
     if [[ "$DEVICE" = "rpi3" ]]; then
@@ -218,11 +222,24 @@ create_install() {
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-        $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service 1> /dev/null 2>&1
+        $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service khadas-utils.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
-        sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $ROOTFS_IMG/rootfs_$ARCH/etc/mkinitcpio.conf
-        $NSPAWN $ROOTFS_IMG/rootfs_$ARCH mkinitcpio -P 1> /dev/null 2>&1
+        sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
+        $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
+    elif [[ "$DEVICE" = "pinephone" ]] || [[ "$DEVICE" = "pinetab" ]]; then
+        $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
+        sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
+        $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
+        if [[ "$EDITION" = "kde" ]] || [[ "$EDITION" = "cubocore" ]]; then
+            sed -i '0,/Session=/s//Session=plasma.desktop/' $TMPDIR/root/etc/sddm.conf
+        elif [[ "$EDITION" = "lxqt" ]]; then
+            sed -i '0,/Session=/s//Session=/Session=lxqt.desktop/' $TMPDIR/root/etc/sddm.conf
+        fi
+        if [[ "$EDITION" != "plasma-mobile" ]]; then
+        sed -i '0,/User=/s//User=manjaro/' $TMPDIR/rootfs/etc/sddm.conf
+        fi
+
     else
         echo "No device specific setting needed for $DEVICE"
     fi
@@ -231,7 +248,7 @@ create_install() {
     rm $TMPDIR/root/usr/bin/qemu-aarch64-static
     rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
     rm -rf $TMPDIR/root/var/log/*
-    rm -rf $ROOTFS_IMG/rootfs_$ARCH/etc/*.pacnew
+    rm -rf $TMPDIR/root/etc/*.pacnew
     rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
     rm -rf $TMPDIR/root/etc/machine-id
     
@@ -380,7 +397,7 @@ cleanup () {
         rm -r $TMPDIR/root
         partprobe $SDCARD 1> /dev/null 2>&1
         
-    elif [[ "$DEVICE" = "on2" ]]; then
+    elif [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
     
     # move boot files
         mv $TMPDIR/root/boot/* $TMPDIR/boot
@@ -426,11 +443,11 @@ fi
 # Using Dialog to ask for user input for variables
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 75 10 \
-        "rpi4"      "Rapsberry Pi 4" \
+        "rpi4"      "Raspberry Pi 4" \
 		"pinebook"  "Pinebook" \
-		"rock64"    "ROCK64" \
-		"rockpro64" "ROCKPro64" \
-		"sopine"    "SOPINE / PINE A64-LTS" \
+		"rock64"    "Rock64" \
+		"rockpro64" "RockPro64" \
+		"sopine"    "Sopine / Pine64-LTS" \
 		"pine64"    "Pine64+" \
 		"oc2"       "Odroid C2" \
 		"on2"       "Odroid N2" \
@@ -479,7 +496,7 @@ if [ ! -z "$USER" ]
 then
 USERGROUPS=$(dialog --clear --title "Manjaro ARM Installer" \
     --inputbox "Enter additional groups for $USER in a comma seperated list: (empty if none)
-(default groups: wheel,sys,storage,lp,network,users,power)" 8 50 \
+(default: wheel,sys,input,video,storage,lp,network,users,power)" 8 90 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 
