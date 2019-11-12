@@ -362,7 +362,7 @@ prepare_card () {
         mount ${SDCARD}${SDDEV}1 $TMPDIR/root
 
     # For rockpro64 device
-    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]; then
+    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]  || [[ "$DEVICE" = "pbpro" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
@@ -435,7 +435,7 @@ cleanup () {
         
         
     # For rockchip devices
-    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]; then
+    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]  || [[ "$DEVICE" = "pbpro" ]]; then
     #flash bootloader
         dd if=$TMPDIR/root/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
         dd if=$TMPDIR/root/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
@@ -454,6 +454,7 @@ fi
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 75 10 \
         "rpi4"      "Raspberry Pi 4" \
+        "pbpro"     "Pinebook Pro" \
 		"pinebook"  "Pinebook" \
 		"rock64"    "Rock64" \
 		"rockpro64" "RockPro64" \
