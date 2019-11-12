@@ -139,7 +139,7 @@ create_install() {
     info "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_DEVICE $PKG_EDITION --noconfirm
-    if [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "rpi4" ]]; then
+    if [[ "$DEVICE" = "rpi4" ]]; then
     if [[ "$EDITION" = "kde-plasma" ]] || [[ "$EDITION" = "cubocore" ]]; then
     $NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm matcha-dynamic-sddm --noconfirm
     $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm matcha-dynamic-sddm --noconfirm
@@ -226,6 +226,7 @@ create_install() {
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
+        sed -i s/'meson64_odroidn2.dtb'/'meson-g12b-odroid-n2.dtb'/ $TMPDIR/boot/boot.ini 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
         $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service khadas-utils.service 1> /dev/null 2>&1
@@ -234,9 +235,9 @@ create_install() {
         sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
         $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pbpro" ]]; then
-        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $ROOTFS_IMG/rootfs_$ARCH/etc/default/tlp
+        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/etc/default/tlp
     elif [[ "$DEVICE" = "rockpi4" ]]; then
-        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $ROOTFS_IMG/rootfs_$ARCH/etc/default/tlp
+        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/etc/default/tlp
     elif [[ "$DEVICE" = "pinephone" ]] || [[ "$DEVICE" = "pinetab" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
         sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
