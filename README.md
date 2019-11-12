@@ -37,6 +37,7 @@ clear && bash manjaro-arm-installer
 
 ## Supported Devices:
 * Pinebook
+* Pinebook Pro (new)
 * Raspberry Pi 3B
 * raspberry Pi 4
 * Rock64
