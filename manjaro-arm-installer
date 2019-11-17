@@ -192,13 +192,13 @@ create_install() {
     $NSPAWN $TMPDIR/root sed -i s/"#$LOCALE"/"$LOCALE"/g /etc/locale.gen 1> /dev/null 2>&1
     echo "LANG=$LOCALE" | tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root locale-gen
-    echo "KEYMAP=$KEYMAP" | tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
+    echo "KEYMAP=$CLIKEYMAP" | tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
     #$NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
     echo 'Section "InputClass"' > $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo 'Identifier "system-keyboard"' >> $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo 'Option "XkbLayout" "us"' >> $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo 'EndSection' >> $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
-    sed -i s/"us"/"$KEYMAP"/ $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
+    sed -i s/"us"/"$X11KEYMAP"/ $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo "$HOSTNAME" | tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
     sed -i s/"enable systemd-resolved.service"/"#enable systemd-resolved.service"/ $TMPDIR/root/usr/lib/systemd/system-preset/90-systemd.preset
 
@@ -235,9 +235,9 @@ create_install() {
         sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
         $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "pbpro" ]]; then
-        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/etc/default/tlp
+        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/root/etc/default/tlp
     elif [[ "$DEVICE" = "rockpi4" ]]; then
-        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/etc/default/tlp
+        sed -i s/"WIFI_PWR_ON_BAT=on"/"WIFI_PWR_ON_BAT=off"/ $TMPDIR/root/etc/default/tlp
     elif [[ "$DEVICE" = "pinephone" ]] || [[ "$DEVICE" = "pinetab" ]]; then
         $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
         sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
@@ -652,8 +652,8 @@ if [ ! -z "$LOCALE" ]; then
 		let i=$i+1
 		W+=($line "")
 	done < <( localectl list-keymaps )
-	KEYMAP=$(dialog --clear --title "Manjaro ARM Installer" \
-		--menu "Choose your keyboard layout:" 20 50 15 \
+	CLIKEYMAP=$(dialog --clear --title "Manjaro ARM Installer" \
+		--menu "Choose your TTY keyboard layout:" 20 50 15 \
 		"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
 else 
@@ -661,7 +661,23 @@ else
 	exit 1
 fi
 
-if [ ! -z "$KEYMAP" ]; then
+if [ ! -z "$CLIKEYMAP" ]; then
+	let i=0
+	W=()
+	while read -r line; do
+		let i=$i+1
+		W+=($line "")
+	done < <( localectl list-x11-keymap-layouts )
+	X11KEYMAP=$(dialog --clear --title "Manjaro ARM Installer" \
+		--menu "Choose your X11 keyboard layout:" 20 50 15 \
+		"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
+	)
+else 
+	clear
+	exit 1
+fi
+
+if [ ! -z "$X11KEYMAP" ]; then
 	HOSTNAME=$(dialog --clear --title "Manjaro ARM Installer" \
 	--inputbox "Enter desired hostname for this system:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
@@ -683,7 +699,8 @@ if [ ! -z "$HOSTNAME" ]; then
     SD Card = $SDCARD
     Timezone = $TIMEZONE
     Locale = $LOCALE
-    Keyboard layout = $KEYMAP
+    TTY Keyboard layout = $CLIKEYMAP
+    X11 Keyboard layout = $X11KEYMAP
     Hostname = $HOSTNAME" 20 70 \
     3>&1 1>&2 2>&3 3>&-
 else
