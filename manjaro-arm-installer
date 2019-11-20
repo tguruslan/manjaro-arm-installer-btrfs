@@ -139,15 +139,15 @@ create_install() {
     info "Installing packages for $EDITION on $DEVICE..."
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_DEVICE $PKG_EDITION --noconfirm
-    if [[ "$DEVICE" = "rpi4" ]]; then
-    if [[ "$EDITION" = "kde-plasma" ]] || [[ "$EDITION" = "cubocore" ]]; then
-    $NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm matcha-dynamic-sddm --noconfirm
-    $NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm matcha-dynamic-sddm --noconfirm
-    elif [[ "$EDITION" = "lxqt" ]]; then
-    $NSPAWN $TMPDIR/root pacman -R sddm matcha-dynamic-sddm --noconfirm
-    $NSPAWN $TMPDIR/root pacman -S sddm-compat matcha-dynamic-sddm --noconfirm
-    fi
-    fi
+    #if [[ "$DEVICE" = "???" ]]; then
+    #if [[ "$EDITION" = "kde-plasma" ]] || [[ "$EDITION" = "cubocore" ]]; then
+    #$NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm matcha-dynamic-sddm --noconfirm
+    #$NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm matcha-dynamic-sddm --noconfirm
+    #elif [[ "$EDITION" = "lxqt" ]]; then
+    #$NSPAWN $TMPDIR/root pacman -R sddm matcha-dynamic-sddm --noconfirm
+    #$NSPAWN $TMPDIR/root pacman -S sddm-compat matcha-dynamic-sddm --noconfirm
+    #fi
+    #fi
     
     info "Enabling services..."
     # Enable services
