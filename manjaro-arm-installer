@@ -59,8 +59,8 @@ if [ ! -f /usr/bin/git ]; then
     elif [ ! -f /usr/bin/bsdtar ]; then
     echo "bsdtar command is missing! Please install libarchive!"
     exit 1
-    elif [ ! -f /usr/bin/mkpasswd ]; then
-    echo "mkpasswd command is missing! Please install debian-whois-mkpasswd!"
+    elif [ ! -f /usr/bin/openssl ]; then
+    echo "openssl command is missing! Please install openssl!"
     exit 1
     elif [ ! -f /usr/bin/awk ]; then
     echo "awk command is missing! Please install gawk!"
@@ -167,10 +167,10 @@ create_install() {
     echo "$ROOTPASSWORD" > $TMPDIR/rootpassword
 
     info "Setting password for root ..."
-    $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(mkpasswd --hash=SHA-512 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(openssl passwd -1 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
 
     info "Adding user..."
-    $NSPAWN $TMPDIR/root useradd -m -G wheel,sys,input,video,storage,lp,network,users,power -p $(mkpasswd --hash=SHA-512 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root useradd -m -G wheel,sys,input,video,storage,lp,network,users,power -p $(openssl passwd -1 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root usermod -aG $USERGROUPS $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
     
@@ -193,7 +193,6 @@ create_install() {
     echo "LANG=$LOCALE" | tee --append $TMPDIR/root/etc/locale.conf 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root locale-gen
     echo "KEYMAP=$CLIKEYMAP" | tee --append $TMPDIR/root/etc/vconsole.conf 1> /dev/null 2>&1
-    #$NSPAWN $TMPDIR/root localectl set-x11-keymap $KEYMAP 1> /dev/null 2>&1
     echo 'Section "InputClass"' > $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo 'Identifier "system-keyboard"' >> $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
     echo 'Option "XkbLayout" "us"' >> $TMPDIR/root/etc/X11/xorg.conf.d/00-keyboard.conf
