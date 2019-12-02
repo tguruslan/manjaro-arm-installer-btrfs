@@ -41,28 +41,28 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Sanity checks for dependencies
-if [ ! -f /usr/bin/git ]; then
+if [ ! -f /usr/bin/git || ! -f /usr/sbin/git || ! -f /sbin/git || ! -f /bin/git ]; then
     echo "git command is missing! Please install git!"
     exit 1
-    elif [ ! -f /usr/bin/parted ]; then
+    elif [ ! -f /usr/bin/parted || ! -f /usr/sbin/parted || ! -f /sbin/parted || ! -f /bin/parted ]; then
     echo "parted command is missing! Please install parted!"
     exit 1
-    elif [ ! -f /usr/bin/systemd-nspawn ]; then
+    elif [ ! -f /usr/bin/systemd-nspawn || ! -f /usr/sbin/systemd-nspawn || ! -f /sbin/systemd-nspawn || ! -f /bin/systemd-nspawn ]; then
     echo "systemd-nspawn command is missing! Please install systemd!"
     exit 1
-    elif [ ! -f /usr/bin/wget ]; then
+    elif [ ! -f /usr/bin/wget || ! -f /usr/sbin/wget || ! -f /sbin/wget || ! -f /bin/wget ]; then
     echo "wget command is missing! Please install wget!"
     exit 1
-    elif [ ! -f /usr/bin/dialog ]; then
+    elif [ ! -f /usr/bin/dialog || ! -f /usr/sbin/dialog || ! -f /sbin/dialog || ! -f /bin/dialog ]; then
     echo "dialog command is missing! Please install dialog!"
     exit 1
-    elif [ ! -f /usr/bin/bsdtar ]; then
+    elif [ ! -f /usr/bin/bsdtar || ! -f /usr/sbin/bsdtar || ! -f /sbin/bsdtar || ! -f /bin/bsdtar ]; then
     echo "bsdtar command is missing! Please install libarchive!"
     exit 1
-    elif [ ! -f /usr/bin/openssl ]; then
+    elif [ ! -f /usr/bin/openssl || ! -f /usr/sbin/openssl || ! -f /sbin/openssl || ! -f /bin/openssl ]; then
     echo "openssl command is missing! Please install openssl!"
     exit 1
-    elif [ ! -f /usr/bin/awk ]; then
+    elif [ ! -f /usr/bin/awk || ! -f /usr/sbin/awk || ! -f /sbin/awk || ! -f /bin/awk ]; then
     echo "awk command is missing! Please install gawk!"
     exit 1
 fi
