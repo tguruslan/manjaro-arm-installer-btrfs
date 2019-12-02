@@ -276,8 +276,8 @@ prepare_card () {
         #partition with boot and root
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
-        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start` 
-        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/size`
+        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start` 
+        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/size`
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
@@ -321,8 +321,8 @@ prepare_card () {
     #partition with 2 partitions
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary fat32 32M 256M 1> /dev/null 2>&1
-        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/start`
-        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}1/size`
+        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start`
+        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/size`
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
