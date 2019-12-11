@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.8
+#       Version 1.2.9
 # *****************************
 
 # Set globals
@@ -50,6 +50,10 @@ for i in "${DEPENDNECIES[@]}"; do
   fi
 done
 
+if [ ! -f "/usr/lib/binfmt.d/qemu-static.conf" ]; then
+    echo "qemu-static.conf file is missing. Please install the relevant package."
+    exit 1
+fi
 
 
 # Functions
