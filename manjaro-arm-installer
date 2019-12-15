@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.9
+#       Version 1.2.10
 # *****************************
 
 # Set globals
@@ -213,7 +213,7 @@ create_install() {
         $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "on2" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-        sed -i s/'meson64_odroidn2.dtb'/'meson-g12b-odroid-n2.dtb'/ $TMPDIR/boot/boot.ini 1> /dev/null 2>&1
+        sed -i s/'meson64_odroidn2.dtb'/'meson-g12b-odroid-n2.dtb'/ $TMPDIR/root/boot/boot.ini 1> /dev/null 2>&1
     elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
         echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
         $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service khadas-utils.service 1> /dev/null 2>&1
