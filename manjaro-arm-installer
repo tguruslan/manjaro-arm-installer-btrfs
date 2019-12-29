@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.10
+#       Version 1.2.11
 # *****************************
 
 # Set globals
@@ -396,13 +396,12 @@ cleanup () {
         mv $TMPDIR/root/boot/* $TMPDIR/boot
     if [[ "$DEVICE" = "on2" ]]; then
     #flash bootloader
-        dd if=$TMPDIR/boot/u-boot.bin of=${LDEV} conv=fsync,notrunc bs=512 seek=1 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/u-boot.bin of=${SDCARD} conv=fsync,notrunc bs=512 seek=1 1> /dev/null 2>&1
     fi
         
     #clean up
         umount $TMPDIR/root
         umount $TMPDIR/boot
-        losetup -d $LDEV 1> /dev/null 2>&1
         rm -r $TMPDIR/root $TMPDIR/boot
         partprobe $SDCARD 1> /dev/null 2>&1
         
