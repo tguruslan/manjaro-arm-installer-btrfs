@@ -125,6 +125,9 @@ create_install() {
     $NSPAWN $TMPDIR/root pacman-key --populate archlinux archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
     info "Installing packages for $EDITION on $DEVICE..."
+    # Setup cache mount
+    mkdir -p $TMPDIR/pkg-cache
+    mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_DEVICE $PKG_EDITION --noconfirm
     #if [[ "$DEVICE" = "???" ]]; then
@@ -239,6 +242,7 @@ create_install() {
     fi
     
     info "Cleaning install for unwanted files..."
+    umount $TMPDIR/root/var/cache/pacman/pkg
     rm -rf $TMPDIR/root/usr/bin/qemu-aarch64-static
     rm -rf $TMPDIR/root/var/cache/pacman/pkg/*
     rm -rf $TMPDIR/root/var/log/*
