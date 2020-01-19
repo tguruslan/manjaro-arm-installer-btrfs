@@ -103,7 +103,7 @@ getarmprofiles () {
         mkdir -p $TMPDIR
         chmod 777 $TMPDIR
         cd $TMPDIR
-        git clone https://gitlab.com/Strit/arm-profiles.git 1> /dev/null 2>&1
+        git clone https://gitlab.manjaro.org/manjaro-arm/applications/arm-profiles.git 1> /dev/null 2>&1
     fi
 
 }
