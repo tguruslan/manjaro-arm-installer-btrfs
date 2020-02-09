@@ -96,14 +96,16 @@ show_elapsed_time(){
 
 getarmprofiles () {
     info "Getting package lists ready for $DEVICE $EDITION edition..."
-    if ls $TMPDIR/arm-profiles/* 1> /dev/null 2>&1; then
+    
+    if [ -d "$TMPDIR/arm-profiles/" ];
+    then
         cd $TMPDIR/arm-profiles
-        git pull 1> /dev/null 2>&1
+        git fetch origin 1> /dev/null 2>&1
+	git reset --hard origin/master 1> /dev/null 2>&1
     else
         mkdir -p $TMPDIR
         chmod 777 $TMPDIR
-        cd $TMPDIR
-        git clone https://gitlab.manjaro.org/manjaro-arm/applications/arm-profiles.git 1> /dev/null 2>&1
+        git clone https://gitlab.manjaro.org/manjaro-arm/applications/arm-profiles.git $TMPDIR/arm-profiles/ 1> /dev/null 2>&1
     fi
 
 }
