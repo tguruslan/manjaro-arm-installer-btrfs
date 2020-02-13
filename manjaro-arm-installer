@@ -126,6 +126,9 @@ create_install() {
     $NSPAWN $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root pacman-key --populate archlinux archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
+    info "Generating mirrorlist..."
+    $NSPAWN $TMPDIR/root pacman-mirrors -g 1> /dev/null 2>&1
+    
     info "Installing packages for $EDITION on $DEVICE..."
     # Setup cache mount
     mkdir -p $TMPDIR/pkg-cache
