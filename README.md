@@ -16,6 +16,8 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * binfmt-qemu-static
 * openssl
 * gawk
+* dosfstools
+* polkit
 
 ## Installing and using from gitlab:
 To use this script, please make sure that the following is correct:
