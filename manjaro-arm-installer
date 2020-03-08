@@ -135,15 +135,6 @@ create_install() {
     mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_DEVICE $PKG_EDITION --noconfirm
-    #if [[ "$DEVICE" = "???" ]]; then
-    #if [[ "$EDITION" = "kde-plasma" ]] || [[ "$EDITION" = "cubocore" ]]; then
-    #$NSPAWN $TMPDIR/root pacman -R sddm sddm-kcm matcha-dynamic-sddm --noconfirm
-    #$NSPAWN $TMPDIR/root pacman -S sddm-compat sddm-kcm matcha-dynamic-sddm --noconfirm
-    #elif [[ "$EDITION" = "lxqt" ]]; then
-    #$NSPAWN $TMPDIR/root pacman -R sddm matcha-dynamic-sddm --noconfirm
-    #$NSPAWN $TMPDIR/root pacman -S sddm-compat matcha-dynamic-sddm --noconfirm
-    #fi
-    #fi
     
     info "Enabling services..."
     # Enable services
@@ -166,7 +157,7 @@ create_install() {
     $NSPAWN $TMPDIR/root awk -i inplace -F: "BEGIN {OFS=FS;} \$1 == \"root\" {\$2=\"$(openssl passwd -1 $(cat $TMPDIR/rootpassword))\"} 1" /etc/shadow 1> /dev/null 2>&1
 
     info "Adding user..."
-    $NSPAWN $TMPDIR/root useradd -m -G wheel,sys,input,video,storage,lp,network,users,power -p $(openssl passwd -1 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root useradd -m -G wheel,sys,audio,input,video,storage,lp,network,users,power -p $(openssl passwd -1 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root usermod -aG $USERGROUPS $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
     
@@ -204,59 +195,6 @@ create_install() {
     elif [[ "$EDITION" = "cubocore" ]]; then
         cp $TMPDIR/root/usr/share/applications/corestuff.desktop $TMPDIR/root/etc/xdg/autostart/
     fi
-
-    
-    info "Doing device specific setups for $DEVICE..."
-    if [[ "$EDITION" = "kde-plasma" ]]; then
-        # Lima devices are not capable of running Plasma with hardware acceleration yet
-        if [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
-        sed -i s/'#QT_QUICK_BACKEND=software'/'QT_QUICK_BACKEND=software'/ $TMPDIR/root/etc/environment 1> /dev/null 2>&1
-    fi
-    fi
-    if [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]] || [[ "$DEVICE" = "pbpro" ]]; then
-        # XFCE don't work right with panfrost yet
-        if [[ "$EDITION" = "xfce" ]]; then
-        $NSPAWN $TMPDIR/root pacman -S xf86-video-fbturbo-git --noconfirm 1> /dev/null 2>&1
-        fi
-    fi
-    if [[ "$DEVICE" = "rpi3" ]]; then
-        echo "dtparam=audio=on" | tee --append $TMPDIR/root/boot/config.txt 1> /dev/null 2>&1
-        echo "blacklist vchiq" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
-        echo "blacklist snd_bcm2835" | tee --append $TMPDIR/root/etc/modprobe.d/blacklist-vchiq.conf 1> /dev/null 2>&1
-        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "rpi4" ]]; then
-        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-        $NSPAWN $TMPDIR/root systemctl enable attach-bluetooth.service 1> /dev/null 2>&1
-        # fix wifi
-        sed -i s/'boardflags3=0x48200100'/'boardflags3=0x44200100'/ $TMPDIR/root/usr/lib/firmware/updates/brcm/brcmfmac43455-sdio.txt 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "oc2" ]]; then
-        $NSPAWN $TMPDIR/root systemctl enable amlogic.service 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "on2" ]]; then
-        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-        sed -i s/'meson64_odroidn2.dtb'/'meson-g12b-odroid-n2.dtb'/ $TMPDIR/root/boot/boot.ini 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
-        echo "LABEL=BOOT  /boot   vfat    defaults        0       0" | tee --append $TMPDIR/root/etc/fstab 1> /dev/null 2>&1
-        $NSPAWN $TMPDIR/root systemctl enable bluetooth-khadas.service khadas-utils.service 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
-        $NSPAWN $TMPDIR/root systemctl enable pinebook-post-install.service 1> /dev/null 2>&1
-        sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
-        $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
-    elif [[ "$DEVICE" = "pinephone" ]] || [[ "$DEVICE" = "pinetab" ]]; then
-        $NSPAWN $TMPDIR/root systemctl enable pinephone-post-install.service 1> /dev/null 2>&1
-        sed -i s/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"/"HOOKS=(base udev autodetect modconf block filesystems keyboard fsck bootsplash-manjaro)"/g $TMPDIR/root/etc/mkinitcpio.conf
-        $NSPAWN $TMPDIR/root mkinitcpio -P 1> /dev/null 2>&1
-        if [[ "$EDITION" = "kde" ]] || [[ "$EDITION" = "cubocore" ]]; then
-            sed -i '0,/Session=/s//Session=plasma.desktop/' $TMPDIR/root/etc/sddm.conf
-        elif [[ "$EDITION" = "lxqt" ]]; then
-            sed -i '0,/Session=/s//Session=/Session=lxqt.desktop/' $TMPDIR/root/etc/sddm.conf
-        fi
-        if [[ "$EDITION" != "plasma-mobile" ]]; then
-        sed -i '0,/User=/s//User=manjaro/' $TMPDIR/rootfs/etc/sddm.conf
-        fi
-
-    else
-        echo "No device specific setting needed for $DEVICE"
-    fi
     
     info "Cleaning install for unwanted files..."
     umount $TMPDIR/root/var/cache/pacman/pkg
@@ -276,58 +214,13 @@ create_install() {
 
 prepare_card () {
     msg "Getting $SDCARD ready for $DEVICE..."
-    # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi3" ]] || [[ "$DEVICE" = "rpi4" ]]; then
         # umount SD card
         umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
         umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
-
+    # Create partitions
+        #Clear first 32mb
+        dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
         #partition with boot and root
-        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary fat32 0% 100M 1> /dev/null 2>&1
-        START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start` 
-        SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/size`
-        END_SECTOR=$(expr $START + $SIZE)
-        parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
-        partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT 1> /dev/null 2>&1
-        mkfs.ext4 "${SDCARD}${SDDEV}2" -L ROOT 1> /dev/null 2>&1
-        
-        #Mount SD card
-        mkdir -p $TMPDIR/root
-        mkdir -p $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
-        mount ${SDCARD}${SDDEV}2 $TMPDIR/root
-
-    # For Odroid devices
-    elif [[ "$DEVICE" = "oc2" ]]; then
-        # umount SD card
-        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
-        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
-
-        #Clear first 8mb
-        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
-
-    #partition with a single root partition
-        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
-        partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
-        
-        #Mount SD card
-        mkdir -p $TMPDIR/root
-        chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
-        
-   elif [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
-        # umount SD card
-        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
-        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
-
-        #Clear first 8 mb
-        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
-        
-    #partition with 2 partitions
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
         parted -s $SDCARD mkpart primary fat32 32M 256M 1> /dev/null 2>&1
         START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start`
@@ -335,135 +228,53 @@ prepare_card () {
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT 1> /dev/null 2>&1
-        mkfs.ext4 "${SDCARD}${SDDEV}2" -L ROOT 1> /dev/null 2>&1
-        
-    #copy rootfs contents over to the FS
+        mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT_MNJRO 1> /dev/null 2>&1
+        mkfs.ext4 -O ^metadata_csum,^64bit "${SDCARD}${SDDEV}2" -L ROOT_MNJRO 1> /dev/null 2>&1
+
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
         mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
         mount ${SDCARD}${SDDEV}2 $TMPDIR/root
-        
-
-    # For pine devices
-    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
-        # umount SD card
-        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
-        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
-
-    #Clear first 8mb
-        dd if=/dev/zero of=${SDCARD} bs=1M count=8 1> /dev/null 2>&1
-
-    #partition with a single root partition
-        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary ext4 0% 100% 1> /dev/null 2>&1
-        partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
-        
-        # Mount SD card
-        mkdir -p $TMPDIR/root
-        chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
-
-    # For rockpro64 device
-    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]  || [[ "$DEVICE" = "pbpro" ]]; then
-        # umount SD card
-        umount ${SDCARD}${SDDEV}1 1> /dev/null 2>&1
-        umount ${SDCARD}${SDDEV}2 1> /dev/null 2>&1
-
-    #Clear first 8mb
-        dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
-
-    #partition with a single root partition
-        parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary ext4 32M 100% 1> /dev/null 2>&1
-        partprobe $SDCARD 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit ${SDCARD}${SDDEV}1 -L ROOT 1> /dev/null 2>&1
-        
-        # Mount SD card
-        mkdir -p $TMPDIR/root
-        chmod 777 -R $TMPDIR/root
-        mount ${SDCARD}${SDDEV}1 $TMPDIR/root
     fi
 }
 
 cleanup () {
     msg "Writing bootloader and cleaning up after install..."
-   # For Raspberry Pi devices
-    if [[ "$DEVICE" = "rpi3" ]] || [[ "$DEVICE" = "rpi4" ]]; then
-       #move boot files
-        mv $TMPDIR/root/boot/* $TMPDIR/boot
-        
-        #clean up
-        umount $TMPDIR/root
-        umount $TMPDIR/boot
-        rm -r $TMPDIR/root $TMPDIR/boot
-        partprobe $SDCARD 1> /dev/null 2>&1
-        
-    # For Odroid devices
-    elif [[ "$DEVICE" = "oc2" ]]; then
-    #flash bootloader
-        cd $TMPDIR/root/boot/
-        ./sd_fusing.sh $SDCARD 1> /dev/null 2>&1
-        cd ~
-
-    #clean up
-        umount $TMPDIR/root
-        rm -r $TMPDIR/root
-        partprobe $SDCARD 1> /dev/null 2>&1
-        
-    elif [[ "$DEVICE" = "on2" ]] || [[ "$DEVICE" = "vim1" ]] || [[ "$DEVICE" = "vim2" ]] || [[ "$DEVICE" = "vim3" ]]; then
-    # move boot files
-        mv $TMPDIR/root/boot/* $TMPDIR/boot
-    if [[ "$DEVICE" = "on2" ]]; then
-    #flash bootloader
+    # Move boot files
+    mv $TMPDIR/root/boot/* $TMPDIR/boot
+    # Flash bootloader
+    case "$DEVICE" in
+    oc2)
+        dd if=$TMPDIR/boot/bl1.bin.hardkernel of=${SDCARD} conv=fsync bs=1 count=442 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/bl1.bin.hardkernel of=${SDCARD} conv=fsync bs=512 skip=1 seek=1 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/u-boot.gxbb of=${SDCARD} conv=fsync bs=512 seek=97 1> /dev/null 2>&1
+        ;;
+    on2)
         dd if=$TMPDIR/boot/u-boot.bin of=${SDCARD} conv=fsync,notrunc bs=512 seek=1 1> /dev/null 2>&1
-    fi
+        ;;
+    vim1|vim2|vim3)
+        dd if=$TMPDIR/boot/u-boot.bin of=${SDCARD} conv=fsync bs=1 count=442 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/u-boot.bin of=${SDCARD} conv=fsync bs=512 skip=1 seek=1 1> /dev/null 2>&1
+        ;;
+    pinebook|pine64-lts|pine64|pinephone|pinetab)
+        dd if=$TMPDIR/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1 1> /dev/null 2>&1
+        ;;
+    pbpro|rockpro64|rockpi4)
+        dd if=$TMPDIR/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/u-boot.itb of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
+        ;;
+    rock64)
+        dd if=$TMPDIR/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
+        dd if=$TMPDIR/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
+        ;;
+    esac
         
     #clean up
         umount $TMPDIR/root
         umount $TMPDIR/boot
         rm -r $TMPDIR/root $TMPDIR/boot
         partprobe $SDCARD 1> /dev/null 2>&1
-        
-    # For pine device
-    elif [[ "$DEVICE" = "pinebook" ]] || [[ "$DEVICE" = "sopine" ]] || [[ "$DEVICE" = "pine64" ]]; then
-    #flash bootloader
-        dd if=$TMPDIR/root/boot/u-boot-sunxi-with-spl-$DEVICE.bin of=${SDCARD} bs=8k seek=1 1> /dev/null 2>&1
-        
-    #clean up
-        umount $TMPDIR/root
-        rm -r $TMPDIR/root
-        partprobe $SDCARD 1> /dev/null 2>&1
-        
-        
-    # For rockchip devices
-    elif [[ "$DEVICE" = "rock64" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]  || [[ "$DEVICE" = "pbpro" ]]; then        
-        # Flash bootloader
-        if [[ "$DEVICE" = "pbpro" ]] || [[ "$DEVICE" = "rockpro64" ]] || [[ "$DEVICE" = "rockpi4" ]]; then
-        # Flash bootloader with ATF
-        dd if=$TMPDIR/root/boot/idbloader.img of=${LDEV} seek=64 conv=notrunc 1> /dev/null 2>&1
-        dd if=$TMPDIR/root/boot/u-boot.itb of=${LDEV} seek=16384 conv=notrunc 1> /dev/null 2>&1
-        else
-        #echo '' 
-        dd if=$TMPDIR/root/boot/idbloader.img of=${LDEV} seek=64 conv=notrunc 1> /dev/null 2>&1
-        dd if=$TMPDIR/root/boot/uboot.img of=${LDEV} seek=16384 conv=notrunc 1> /dev/null 2>&1
-        dd if=$TMPDIR/root/boot/trust.img of=${LDEV} seek=24576 conv=notrunc 1> /dev/null 2>&1
-        #fi
-        
-        # Below section is for testing uboot with ATF
-        #if [[ "$DEVICE" = "rock64" ]]; then
-        #flash bootloader
-        #dd if=$TMPDIR/root/boot/idbloader.img of=${LDEV} seek=64 conv=notrunc
-        #dd if=$TMPDIR/root/boot/u-boot.itb of=${LDEV} seek=16384 conv=notrunc
-        fi
-        
-    #clean up
-        umount $TMPDIR/root
-        rm -r $TMPDIR/root
-        partprobe $SDCARD 1> /dev/null 2>&1
-        
-fi
 }
 
 
@@ -475,7 +286,7 @@ DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
 		"pinebook"  "Pinebook" \
 		"rock64"    "Rock64" \
 		"rockpro64" "RockPro64" \
-		"sopine"    "Sopine / Pine64-LTS" \
+		"pine64-lts"    "Pine64-LTS / Sopine" \
 		"pine64"    "Pine64+" \
 		"oc2"       "Odroid C2" \
 		"on2"       "Odroid N2" \
@@ -525,7 +336,7 @@ if [ ! -z "$USER" ]
 then
 USERGROUPS=$(dialog --clear --title "Manjaro ARM Installer" \
     --inputbox "Enter additional groups for $USER in a comma seperated list: (empty if none)
-(default: wheel,sys,input,video,storage,lp,network,users,power)" 8 90 \
+(default: wheel,sys,audio,input,video,storage,lp,network,users,power)" 8 90 \
         3>&1 1>&2 2>&3 3>&- \
 	)
 else 

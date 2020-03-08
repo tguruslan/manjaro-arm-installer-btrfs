@@ -22,7 +22,7 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 ## Installing and using from gitlab:
 To use this script, please make sure that the following is correct:
 
-* an **empty** SD/eMMC card with at least 8 GB storage is plugged in.
+* an **empty** SD/eMMC card with at least 8 GB storage is plugged in, but not mounted.
 * that your user account has `sudo` rights.
 
 Then use this to get it:
@@ -30,8 +30,7 @@ Then use this to get it:
 git clone https://gitlab.manjaro.org/manjaro-arm/applications/manjaro-arm-installer
 cd manjaro-arm-installer
 chmod +x manjaro-arm-installer
-sudo -s
-clear && bash manjaro-arm-installer
+sudo bash manjaro-arm-installer
 ```
 
 ## Known Issues:
@@ -39,7 +38,7 @@ clear && bash manjaro-arm-installer
 
 ## Supported Devices:
 * Pinebook
-* Pinebook Pro (new)
+* Pinebook Pro
 * Raspberry Pi 3B
 * raspberry Pi 4
 * Rock64
