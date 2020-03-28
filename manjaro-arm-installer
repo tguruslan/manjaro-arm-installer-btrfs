@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.15
+#       Version 1.2.16
 # *****************************
 
 # Set globals
@@ -127,7 +127,7 @@ create_install() {
     $NSPAWN $TMPDIR/root pacman-key --populate archlinux archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
     
     info "Generating mirrorlist..."
-    $NSPAWN $TMPDIR/root pacman-mirrors -g 1> /dev/null 2>&1
+    $NSPAWN $TMPDIR/root pacman-mirrors -f10 1> /dev/null 2>&1
     
     info "Installing packages for $EDITION on $DEVICE..."
     # Setup cache mount
