@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # *****************************
-#       Version 1.2.16
+#       Version 1.2.17
 # *****************************
 
 # Set globals
@@ -41,7 +41,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Sanity checks for dependencies
-declare -a DEPENDNECIES=("git" "parted" "systemd-nspawn" "wget" "dialog" "bsdtar" "openssl" "awk")
+declare -a DEPENDNECIES=("git" "parted" "systemd-nspawn" "wget" "dialog" "bsdtar" "openssl" "awk" "mkfs.vfat")
 
 for i in "${DEPENDNECIES[@]}"; do
   if ! [[ -f "/bin/$i" || -f "/sbin/$i" || -f "/usr/bin/$i" || -f "/usr/sbin/$i" ]] ; then
@@ -134,7 +134,7 @@ create_install() {
     mkdir -p $TMPDIR/pkg-cache
     mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
-    $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_DEVICE $PKG_EDITION --noconfirm
+    $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_EDITION $PKG_DEVICE --noconfirm
     
     info "Enabling services..."
     # Enable services
