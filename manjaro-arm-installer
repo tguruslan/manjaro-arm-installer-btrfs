@@ -250,7 +250,7 @@ cleanup () {
         dd if=$TMPDIR/boot/bl1.bin.hardkernel of=${SDCARD} conv=fsync bs=512 skip=1 seek=1 1> /dev/null 2>&1
         dd if=$TMPDIR/boot/u-boot.gxbb of=${SDCARD} conv=fsync bs=512 seek=97 1> /dev/null 2>&1
         ;;
-    on2)
+    on2|oc4)
         dd if=$TMPDIR/boot/u-boot.bin of=${SDCARD} conv=fsync,notrunc bs=512 seek=1 1> /dev/null 2>&1
         ;;
     vim1|vim2|vim3)
@@ -264,7 +264,7 @@ cleanup () {
         dd if=$TMPDIR/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
         dd if=$TMPDIR/boot/u-boot.itb of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
         ;;
-    rock64)
+    rock64|roc-cc)
         dd if=$TMPDIR/boot/idbloader.img of=${SDCARD} seek=64 conv=notrunc 1> /dev/null 2>&1
         dd if=$TMPDIR/boot/uboot.img of=${SDCARD} seek=16384 conv=notrunc 1> /dev/null 2>&1
         dd if=$TMPDIR/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
@@ -283,17 +283,21 @@ cleanup () {
 DEVICE=$(dialog --clear --title "Manjaro ARM Installer" \
         --menu "Choose a device:" 20 75 10 \
         "rpi4"      "Raspberry Pi 4" \
+		"rpi3"      "Raspberry Pi 3" \
         "pbpro"     "Pinebook Pro" \
-		"pinebook"  "Pinebook" \
-		"rock64"    "Rock64" \
 		"rockpro64" "RockPro64" \
+		"rockpi4"   "Rock Pi 4" \
+		"on2"       "Odroid N2" \
+		"oc4"		"Odroid C4" \
+		"oc2"       "Odroid C2" \
+		"pinebook"  "Pinebook" \
 		"pine64-lts"    "Pine64-LTS / Sopine" \
 		"pine64"    "Pine64+" \
-		"oc2"       "Odroid C2" \
-		"on2"       "Odroid N2" \
+		"pine-h64"	"Pine H64" \
+		"rock64"    "Rock64" \
+		"roc-cc"	"LibreComputer Renegade" \
 		"vim3"      "Khadas Vim 3" \
-		"rockpi4"   "Rock Pi 4" \
-		"rpi3"      "Raspberry Pi 3" \
+		"vim2"		"Khadas Vim 2" \
 		"vim1"      "Khadas Vim 1" \
 		3>&1 1>&2 2>&3 3>&-)
 
