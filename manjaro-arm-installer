@@ -134,7 +134,7 @@ create_install() {
     mkdir -p $TMPDIR/pkg-cache
     mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
-    $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_EDITION $PKG_DEVICE --noconfirm
+    $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs btrfs-progs $PKG_EDITION $PKG_DEVICE --noconfirm
 
     info "Enabling services..."
     # Enable services
