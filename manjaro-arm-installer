@@ -96,7 +96,7 @@ show_elapsed_time(){
 
 getarmprofiles () {
     info "Getting package lists ready for $DEVICE $EDITION edition..."
-    
+
     if [ -d "$TMPDIR/arm-profiles/" ];
     then
         cd $TMPDIR/arm-profiles
@@ -113,29 +113,29 @@ getarmprofiles () {
 create_install() {
     msg "Creating install for $DEVICE..."
     info "Used device is ${SDCARD}${SDDEV}"
-    
+
     # fetch and extract rootfs
     info "Downloading latest $ARCH rootfs..."
     cd $TMPDIR
     wget -q --show-progress --progress=bar:force:noscroll https://osdn.net/projects/manjaro-arm/storage/.rootfs/Manjaro-ARM-$ARCH-latest.tar.gz
-    
+
     info "Extracting $ARCH rootfs..."
     bsdtar -xpf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz -C $TMPDIR/root
-    
+
     info "Setting up keyrings..."
     $NSPAWN $TMPDIR/root pacman-key --init 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root pacman-key --populate archlinux archlinuxarm manjaro manjaro-arm 1> /dev/null 2>&1
-    
+
     info "Generating mirrorlist..."
     $NSPAWN $TMPDIR/root pacman-mirrors -f10 1> /dev/null 2>&1
-    
+
     info "Installing packages for $EDITION on $DEVICE..."
     # Setup cache mount
     mkdir -p $TMPDIR/pkg-cache
     mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs $PKG_EDITION $PKG_DEVICE --noconfirm
-    
+
     info "Enabling services..."
     # Enable services
     $NSPAWN $TMPDIR/root systemctl enable getty.target haveged.service 1> /dev/null 2>&1
@@ -160,14 +160,14 @@ create_install() {
     $NSPAWN $TMPDIR/root useradd -m -G wheel,sys,audio,input,video,storage,lp,network,users,power -p $(openssl passwd -1 $(cat $TMPDIR/password)) -s /bin/bash $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root usermod -aG $USERGROUPS $(cat $TMPDIR/user) 1> /dev/null 2>&1
     $NSPAWN $TMPDIR/root chfn -f "$FULLNAME" $(cat $TMPDIR/user) 1> /dev/null 2>&1
-    
+
     info "Enabling user services..."
     if [[ "$EDITION" = "minimal" ]] || [[ "$EDITION" = "server" ]]; then
         echo "No user services for $EDITION edition"
     else
         $NSPAWN $TMPDIR/root --user $(cat $TMPDIR/user) systemctl --user enable pulseaudio.service 1> /dev/null 2>&1
     fi
-    
+
     info "Setting up system settings..."
     #system setup
     $NSPAWN $TMPDIR/root chmod u+s /usr/bin/ping 1> /dev/null 2>&1
@@ -189,6 +189,8 @@ create_install() {
     fi
     echo "$HOSTNAME" | tee --append $TMPDIR/root/etc/hostname 1> /dev/null 2>&1
     sed -i s/"enable systemd-resolved.service"/"#enable systemd-resolved.service"/ $TMPDIR/root/usr/lib/systemd/system-preset/90-systemd.preset
+    sed -i s/"rw"/"rootflags=subvol=manjaro,compress rw"/g $TMPDIR/boot/boot.txt
+    sed -i s/"rw"/"rootflags=subvol=manjaro,compress rw"/g $TMPDIR/boot/boot.scr
 
     echo "Correcting permissions from overlay..."
     chown -R root:root $TMPDIR/root/etc
@@ -197,7 +199,7 @@ create_install() {
     elif [[ "$EDITION" = "cubocore" ]]; then
         cp $TMPDIR/root/usr/share/applications/corestuff.desktop $TMPDIR/root/etc/xdg/autostart/
     fi
-    
+
     info "Cleaning install for unwanted files..."
     umount $TMPDIR/root/var/cache/pacman/pkg
     rm -rf $TMPDIR/root/usr/bin/qemu-aarch64-static
@@ -206,7 +208,7 @@ create_install() {
     rm -rf $TMPDIR/root/etc/*.pacnew
     rm -rf $TMPDIR/root/usr/lib/systemd/system/systemd-firstboot.service
     rm -rf $TMPDIR/root/etc/machine-id
-    
+
     # Remove temp files on host
     rm -rf $TMPDIR/user $TMPDIR/password $TMPDIR/rootpassword
     rm -rf $TMPDIR/Manjaro-ARM-$ARCH-latest.tar.gz*
@@ -224,19 +226,27 @@ prepare_card () {
         dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
         #partition with boot and root
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary fat32 32M 256M 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary fat32 32M 513M 1> /dev/null 2>&1
         START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start`
         SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/size`
         END_SECTOR=$(expr $START + $SIZE)
-        parted -s $SDCARD mkpart primary ext4 "${END_SECTOR}s" 100% 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary btrfs "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
         mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT_MNJRO 1> /dev/null 2>&1
-        mkfs.ext4 -O ^metadata_csum,^64bit "${SDCARD}${SDDEV}2" -L ROOT_MNJRO 1> /dev/null 2>&1
+        mkfs.btrfs -O ^metadata_csum,^64bit "${SDCARD}${SDDEV}2" -L ROOT_MNJRO 1> /dev/null 2>&1
 
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
         mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
         mount ${SDCARD}${SDDEV}2 $TMPDIR/root
+
+        current_dir=$(pwd);
+        cd $TMPDIR/root
+        btrfs subvolume create manjaro
+        btrfs subvolume set-default manjaro
+        cd $current_dir
+        umount $TMPDIR/root
+        mount -t btrfs -o subvol=manjaro ${SDCARD}${SDDEV}2 $TMPDIR/root
 }
 
 cleanup () {
@@ -270,7 +280,7 @@ cleanup () {
         dd if=$TMPDIR/boot/trust.img of=${SDCARD} seek=24576 conv=notrunc 1> /dev/null 2>&1
         ;;
     esac
-        
+
     #clean up
         umount $TMPDIR/root
         umount $TMPDIR/boot
@@ -314,9 +324,9 @@ if [ ! -z "$DEVICE" ]; then
 		"i3"        "Mininal i3 WM with apps    (very light)" \
 		"cubocore"  "QT based Desktop           (lightweight)" \
 		"gnome"     "Full Gnome desktop and apps (EXPERIMANTAL)" \
-		3>&1 1>&2 2>&3 3>&-) 
+		3>&1 1>&2 2>&3 3>&-)
 
-else 
+else
 	clear
 	exit 1
 fi
@@ -332,7 +342,7 @@ if [ ! -z "$EDITION" ]; then
     msg "Configuration aborted! Username contained invalid characters."
     exit 1
     fi
-else 
+else
 	clear
 	exit 1
 fi
@@ -344,7 +354,7 @@ USERGROUPS=$(dialog --clear --title "Manjaro ARM Installer" \
 (default: wheel,sys,audio,input,video,storage,lp,network,users,power)" 8 90 \
         3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -366,7 +376,7 @@ if [ ! -z "$FULLNAME" ]; then
 	--insecure --passwordbox "Enter Password for $USER:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -376,7 +386,7 @@ if [ ! -z "$PASSWORD" ]; then
 	--insecure --passwordbox "Confirm Password for $USER:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -392,7 +402,7 @@ if [ ! -z "$CONFIRMPASSWORD" ]; then
 	--insecure --passwordbox "Enter Root Password:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -402,7 +412,7 @@ if [ ! -z "$ROOTPASSWORD" ]; then
 	--insecure --passwordbox "Confirm Root Password:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -416,7 +426,7 @@ fi
 if [ ! -z "$CONFIRMROOTPASSWORD" ]
 then
 
-# simple command to put the results of lsblk (just the names of the devices) into an array and make that array populate the options	
+# simple command to put the results of lsblk (just the names of the devices) into an array and make that array populate the options
 	let i=0
 	W=()
 	while read -r line; do
@@ -431,7 +441,7 @@ then
 	DEV_NAME=$SDCARD
 	SDCARD=/dev/$SDCARD
 	SDTYP=${SDCARD:5:2}
-else 
+else
 	clear
 	exit 1
 fi
@@ -440,7 +450,7 @@ if [[ "$SDTYP" = "sd" ]]; then
 	SDDEV=""
 elif [[ "$SDTYP" = "mm" ]]; then
 	SDDEV="p"
-else 
+else
 	clear
 	exit 1
 fi
@@ -457,7 +467,7 @@ if [ ! -z "$SDCARD" ]; then
 	--menu "Choose your timezone!" 20 50 15 \
 	"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -474,7 +484,7 @@ if [ ! -z "$TIMEZONE" ]; then
 		--menu "Choose your locale!" 20 50 15 \
 		"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 		)
-else 
+else
 	clear
 	exit 1
 fi
@@ -490,7 +500,7 @@ if [ ! -z "$LOCALE" ]; then
 		--menu "Choose your TTY keyboard layout:" 20 50 15 \
 		"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -507,7 +517,7 @@ if [ ! -z "$CLIKEYMAP" ]; then
 		--menu "Choose your X11 keyboard layout:" 20 50 15 \
 		"${W[@]}" 3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
@@ -518,7 +528,7 @@ if [ ! -z "$CLIKEYMAP" ]; then
 	--inputbox "Enter desired hostname for this system:" 8 50 \
 	3>&1 1>&2 2>&3 3>&- \
 	)
-else 
+else
 	clear
 	exit 1
 fi
