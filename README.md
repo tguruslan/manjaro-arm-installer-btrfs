@@ -19,22 +19,7 @@ This script is "interactive". Meaning that it asks you questions when run to cus
 * dosfstools
 * polkit
 
-## Installing and using from Manjaro x64 repositories:
-To use this script, please make sure that the following is correct:
-
-* an **empty** SD/eMMC card with at least 8 GB storage is plugged in, but not mounted.
-* that your user account has `sudo` rights.
-
-Then install the `manjaro-arm-installer` package with:
-```
-sudo pacman -Syu manjaro-arm-installer
-```
-Then reboot. You can now launch the installer with:
-```
-sudo bash manjaro-arm-installer
-```
-
-## Installing and using from gitlab:
+## Installing and using from git:
 To use this script, please make sure that the following is correct:
 
 * an **empty** SD/eMMC card with at least 8 GB storage is plugged in, but not mounted.
@@ -42,7 +27,7 @@ To use this script, please make sure that the following is correct:
 
 Then use this to get it:
 ```
-git clone https://gitlab.manjaro.org/manjaro-arm/applications/manjaro-arm-installer
+git clone https://github.com/tguruslan/manjaro-arm-installer-btrfs
 cd manjaro-arm-installer
 chmod +x manjaro-arm-installer
 sudo bash ./manjaro-arm-installer
@@ -78,10 +63,3 @@ sudo bash ./manjaro-arm-installer
 * LXQT (full LXQT desktop with some qt apps)
 * Mate (full mate desktop with apps)
 * CuboCore (base plasma desktop with CoreApps)
-
-## Other notes:
-This script is available in the **Manjaro** repository and can be installed with `sudo pacman -S manjaro-arm-installer`.
-
-This script is also available as an **Arch** (*pkg.tar.xz*) package in my **Manjaro Strit** repo, called `manjaro-arm-installer`.
-
-This script **should** be distro-agnostic, which means you can install *Manjaro ARM* from **any** distro, as long as the dependencies are met.
