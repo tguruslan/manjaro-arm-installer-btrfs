@@ -1,4 +1,4 @@
-# manjaro-arm-installer
+# manjaro-arm-installer-btrfs
 
 Scripts for installing Manjaro ARM directly to SD/eMMC cards without the need for images.
 
