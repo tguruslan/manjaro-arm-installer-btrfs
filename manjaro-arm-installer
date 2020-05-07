@@ -132,6 +132,7 @@ create_install() {
     info "Installing packages for $EDITION on $DEVICE..."
     # Setup cache mount
     mkdir -p $TMPDIR/pkg-cache
+    mkdir -p $TMPDIR/root/var/cache/pacman/pkg
     mount -o bind $TMPDIR/pkg-cache $TMPDIR/root/var/cache/pacman/pkg
     # Install device and editions specific packages
     $NSPAWN $TMPDIR/root pacman -Syyu base manjaro-system manjaro-release systemd systemd-libs btrfs-progs $PKG_EDITION $PKG_DEVICE --noconfirm
@@ -226,27 +227,31 @@ prepare_card () {
         dd if=/dev/zero of=${SDCARD} bs=1M count=32 1> /dev/null 2>&1
         #partition with boot and root
         parted -s $SDCARD mklabel msdos 1> /dev/null 2>&1
-        parted -s $SDCARD mkpart primary fat32 32M 513M 1> /dev/null 2>&1
+        parted -s $SDCARD mkpart primary fat32 32M 512M 1> /dev/null 2>&1
         START=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/start`
         SIZE=`cat /sys/block/$DEV_NAME/${DEV_NAME}${SDDEV}1/size`
         END_SECTOR=$(expr $START + $SIZE)
         parted -s $SDCARD mkpart primary btrfs "${END_SECTOR}s" 100% 1> /dev/null 2>&1
         partprobe $SDCARD 1> /dev/null 2>&1
         mkfs.vfat "${SDCARD}${SDDEV}1" -n BOOT_MNJRO 1> /dev/null 2>&1
-        mkfs.btrfs -O ^metadata_csum,^64bit "${SDCARD}${SDDEV}2" -L ROOT_MNJRO 1> /dev/null 2>&1
+        mkfs.btrfs "${SDCARD}${SDDEV}2" -L ROOT_MNJRO -f 1> /dev/null 2>&1
 
         mkdir -p $TMPDIR/root
         mkdir -p $TMPDIR/boot
         mount ${SDCARD}${SDDEV}1 $TMPDIR/boot
         mount ${SDCARD}${SDDEV}2 $TMPDIR/root
 
-        current_dir=$(pwd);
-        cd $TMPDIR/root
-        btrfs subvolume create manjaro
-        btrfs subvolume set-default manjaro
-        cd $current_dir
-        umount $TMPDIR/root
-        mount -t btrfs -o subvol=manjaro ${SDCARD}${SDDEV}2 $TMPDIR/root
+        if [[ $(mount | grep $TMPDIR/root) ]]; then
+          cd $TMPDIR/root
+          btrfs subvolume create manjaro
+          btrfs subvolume set-default manjaro
+          cd $TMPDIR
+          umount $TMPDIR/root
+          mount -t btrfs -o subvol=manjaro ${SDCARD}${SDDEV}2 $TMPDIR/root
+        else
+          msg "Помилка монтування картки пам'яті"
+          $TMPDIR/root
+        fi
 }
 
 cleanup () {
